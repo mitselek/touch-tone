@@ -1,0 +1,73 @@
+# Phone Zero
+
+A custom bedside phone designed specifically for elderly blind users.
+
+## Project Overview
+
+Phone Zero is a specialized communication device that eliminates traditional visual interfaces in favor of tactile buttons, movement-based call answering, and non-visual feedback mechanisms. This stationary device is designed to be reliable, easy to use, and capable of long-term operation without technical intervention.
+
+## Key Features
+
+- **No Screen:** Designed specifically for blind users
+- **Large Tactile Buttons:** 4-8 customizable buttons with distinct tactile features
+- **Movement-Based Answering:** Answer calls by simply moving the device
+- **Always-On Design:** Continuous operation with battery backup for power outages
+- **Battery Status via SMS:** Automatic notifications at specific battery levels
+- **High-Quality Audio:** Optimized for clear voice communication
+- **Long Battery Life:** Extended off-grid operation capability
+
+## Current Documentation
+
+- [Hardware Requirements](hardware-requirements.md) - Detailed specifications for core components
+- [Phone Specifications](phone-specifications.md) - Core features and accessibility design
+- [Always-On Design Strategies](always-on-design-strategies.md) - Power management and longevity approaches
+
+## Next Development Steps
+
+### 1. Create Detailed Schematic Diagram
+- Design the complete electronic circuitry with proper voltage levels and signal pathways
+- Define connections between ESP32/microcontroller, 4G module, speaker, sensors, and power system
+- Include test points and safety mechanisms
+
+### 2. Develop Initial Prototype
+- Breadboard the core components to test basic functionality
+- Verify integration between microcontroller, 4G module, and sensors
+- Test power requirements and communication protocols
+
+### 3. Design Physical Enclosure
+- Focus on ergonomics for elderly users
+- Incorporate large tactile buttons with distinct shapes and textures
+- Ensure clear speaker positioning and easy access to USB-C port
+
+### 4. Develop Firmware
+- Implement button handling, call management, and SMS notifications
+- Create movement-based call answering detection
+- Optimize power management for battery longevity
+
+### 5. Source Hardware Components
+- Research and select reliable suppliers for all components
+- Obtain samples for testing before final selection
+- Consider customization options for tactile elements
+
+### 6. Design Tactile Button Caps
+- Explore various shapes, textures, and materials
+- Test individual caps and larger unified caps
+- Optimize for touch recognition and ease of use
+
+### 7. Develop Power Management System
+- Create seamless transition between mains power and battery
+- Implement adaptive charging and battery health monitoring
+- Design low-power modes for extended operation
+
+### 8. Create 3D Models for Enclosure
+- Model internal component mounting and external features
+- 3D print prototypes for testing fit and ergonomics
+- Iterate based on physical testing results
+
+## Contributing
+
+This project is currently in development. If you're interested in contributing, please contact the project maintainers.
+
+## License
+
+[License information to be added]
