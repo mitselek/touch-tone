@@ -24,42 +24,42 @@ Phone Zero is a specialized communication device that eliminates traditional vis
 
 ## Next Development Steps
 
-### 1. Create Detailed Schematic Diagram
+### 1. [Create Detailed Schematic Diagram](https://github.com/mitselek/touch-tone/issues/1)
 - Design the complete electronic circuitry with proper voltage levels and signal pathways
 - Define connections between ESP32/microcontroller, 4G module, speaker, sensors, and power system
 - Include test points and safety mechanisms
 
-### 2. Develop Initial Prototype
+### 2. [Develop Initial Prototype](https://github.com/mitselek/touch-tone/issues/2)
 - Breadboard the core components to test basic functionality
 - Verify integration between microcontroller, 4G module, and sensors
 - Test power requirements and communication protocols
 
-### 3. Design Physical Enclosure
+### 3. [Design Physical Enclosure](https://github.com/mitselek/touch-tone/issues/3)
 - Focus on ergonomics for elderly users
 - Incorporate large tactile buttons with distinct shapes and textures
 - Ensure clear speaker positioning and easy access to USB-C port
 
-### 4. Develop Firmware
+### 4. [Develop Firmware](https://github.com/mitselek/touch-tone/issues/4)
 - Implement button handling, call management, and SMS notifications
 - Create movement-based call answering detection
 - Optimize power management for battery longevity
 
-### 5. Source Hardware Components
+### 5. [Source Hardware Components](https://github.com/mitselek/touch-tone/issues/5)
 - Research and select reliable suppliers for all components
 - Obtain samples for testing before final selection
 - Consider customization options for tactile elements
 
-### 6. Design Tactile Button Caps
+### 6. [Design Tactile Button Caps](https://github.com/mitselek/touch-tone/issues/6)
 - Explore various shapes, textures, and materials
 - Test individual caps and larger unified caps
 - Optimize for touch recognition and ease of use
 
-### 7. Develop Power Management System
+### 7. [Develop Power Management System](https://github.com/mitselek/touch-tone/issues/7)
 - Create seamless transition between mains power and battery
 - Implement adaptive charging and battery health monitoring
 - Design low-power modes for extended operation
 
-### 8. Create 3D Models for Enclosure
+### 8. [Create 3D Models for Enclosure](https://github.com/mitselek/touch-tone/issues/8)
 - Model internal component mounting and external features
 - 3D print prototypes for testing fit and ergonomics
 - Iterate based on physical testing results
