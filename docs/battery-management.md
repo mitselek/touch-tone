@@ -1,5 +1,17 @@
 # Battery Management System Requirements for Mains-Powered Devices with LiPo Backup
 
+## Executive Summary
+
+This report analyzed the necessity of a dedicated Battery Management System (BMS) for a custom bedside phone that uses a 3.7V 2400mAh LiPo battery as backup power, with mains power as the primary source.
+
+The report highlighted that a dedicated BMS offers crucial safety features like overcharge, over-discharge, overcurrent, and short circuit protection, as well as temperature monitoring, which are not inherently provided by the ESP32 microcontroller. While the ESP32 has some battery-related functionalities like ADC for voltage measurement and temperature sensing of the chip itself, it lacks the dedicated hardware and precise control necessary for safe and optimal LiPo battery management.
+
+For maximizing the lifespan and safety of the LiPo battery, especially with infrequent discharge cycles, proper charging control (CC/CV), over-discharge prevention, and temperature monitoring are essential. The user's requirement for advanced features such as adaptive charging algorithms, temperature compensation, and cycle life optimization further necessitates a dedicated BMS module.
+
+Several potential BMS modules for single-cell 3.7V LiPo batteries were reviewed, ranging from basic protection boards to more advanced modules with features like temperature monitoring and fast charging capabilities.
+
+The report concluded by recommending the addition of a dedicated hardware battery health controller (BMS) to the project. This is crucial for ensuring the safety, reliability, and longevity of the LiPo battery, especially given the "always-on" nature of the device and the need for advanced battery management features. The specific choice of BMS module will depend on the project's priorities regarding cost, size, and the level of advanced features required.
+
 ## 1. Introduction
 
 The increasing demand for uninterrupted operation in electronic devices has led to a greater reliance on battery backup systems, even in devices primarily powered by mains electricity. This ensures functionality during power outages, providing a seamless user experience. 
