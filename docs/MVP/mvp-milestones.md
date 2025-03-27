@@ -12,7 +12,7 @@ The project is condensed into three major phases: Planning & Component Selection
 **Timeframe:** Days 1-3
 **Description:** Define the absolute minimum requirements for a functional MVP
 **Deliverables:**
-- MVP requirements document focused on core functionality only
+- MVP requirements document focused on core functionality only ([see completed document](./mvp-requirements.md))
 - Feature prioritization with clear "must-have" vs "future release" designations
 - Technical constraints document
 
