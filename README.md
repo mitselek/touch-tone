@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-Phone Zero is a custom bedside telephone designed specifically for elderly blind users, prioritizing accessibility through tactile interfaces rather than visual displays. The device features large, distinctly textured buttons, movement-based call answering functionality, and non-visual feedback mechanisms to create an intuitive user experience.
+Phone Zero is a custom bedside telephone designed specifically for elderly blind users, prioritizing accessibility through tactile interfaces rather than visual displays. The device features large, distinctly textured buttons, button-based call answering functionality, and non-visual feedback mechanisms to create an intuitive user experience.
 
 The phone operates as an always-on stationary device with continuous mains power connection and battery backup for uninterrupted operation during outages. It incorporates high-quality audio components optimized for voice clarity, and a comprehensive monitoring system that sends battery status updates via SMS.
 
@@ -14,13 +14,13 @@ A custom bedside phone designed specifically for elderly blind users.
 
 ## Project Overview
 
-Phone Zero is a specialized communication device that eliminates traditional visual interfaces in favor of tactile buttons, movement-based call answering, and non-visual feedback mechanisms. This stationary device is designed to be reliable, easy to use, and capable of long-term operation without technical intervention.
+Phone Zero is a specialized communication device that eliminates traditional visual interfaces in favor of tactile buttons, button-based call answering, and non-visual feedback mechanisms. This stationary device is designed to be reliable, easy to use, and capable of long-term operation without technical intervention.
 
 ## Key Features
 
 - **No Screen:** Designed specifically for blind users
 - **Large Tactile Buttons:** 4-8 customizable buttons with distinct tactile features
-- **Movement-Based Answering:** Answer calls by simply moving the device
+- **Button-Based Answering:** Answer calls by pressing any button
 - **Always-On Design:** Continuous operation with battery backup for power outages
 - **Battery Status via SMS:** Automatic notifications at specific battery levels
 - **High-Quality Audio:** Optimized for clear voice communication
@@ -54,7 +54,7 @@ Phone Zero is a specialized communication device that eliminates traditional vis
 
 ### 4. [Develop Firmware](https://github.com/mitselek/touch-tone/issues/4)
 - Implement button handling, call management, and SMS notifications
-- Create movement-based call answering detection
+- Create button-based call answering functionality
 - Optimize power management for battery longevity
 
 ### 5. [Source Hardware Components](https://github.com/mitselek/touch-tone/issues/5)

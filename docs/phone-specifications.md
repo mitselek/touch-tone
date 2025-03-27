@@ -22,7 +22,7 @@ The device is designed for continuous operation as a stationary, mains-powered u
 *   **Microcontroller:** Utilizes either ESP32 or Arduino.
 *   **Connectivity:** 4G module for cellular network access.
 *   **Pre-programmed Numbers:** Hard-coded phone numbers assigned to each button.
-*   **Movement Sensor:** Sensor to detect phone movement for answering calls by simply moving or tapping the phone.
+*   **Button-Based Call Answering:** Any button press will answer an incoming call.
 *   **Direct Mains Connection:** Single-piece stationary device connected directly to mains power.
 *   **USB-C Port:** Alternative charging option for flexibility and backup during power outages.
 *   **Vibration Module:** Hardware-level vibration capability for alerts and future software enhancements.
@@ -31,7 +31,7 @@ The device is designed for continuous operation as a stationary, mains-powered u
 
 *   **No Visual Interface:** Designed specifically for blind users.
 *   **Large Tactile Buttons:** Easy to locate and press.
-*   **Movement-Based Call Answering:** Simplifies answering calls.
+*   **Button-Based Call Answering:** Simplifies answering calls by allowing any button to accept an incoming call.
 *   **Battery Status via SMS:** Comprehensive battery level notifications:
     *   SMS sent at 100%, 75%, 50%, 25%, 10%, and 5% battery levels.
 *   **Low-Battery Alert:** Audible sound and vibration when battery reaches critical levels.

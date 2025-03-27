@@ -8,7 +8,7 @@ The recommended battery configuration includes a 3.7V LiPo with integrated prote
 
 For core processing and connectivity, the report suggests using either an ESP32 or Arduino microcontroller paired with a 4G module, with integrated boards like the Waveshare ESP32-S3 SIM7670G or Makerfabs ESP32S3 4G LTE CAT1 A7670X identified as strong candidates due to their combined processing and cellular capabilities.
 
-Additional required components include a movement sensor (combining accelerometer, gyroscope, and magnetometer) for gesture-based interaction and drop detection, power management systems to handle mains power and battery backup, and tactile feedback via a vibration module. The device is designed as an always-on, stationary unit with intelligent power management to maximize battery life during power outages.
+Additional required components include buttons with distinct tactile features for call control and answering, power management systems to handle mains power and battery backup, and tactile feedback via a vibration module. The device is designed as an always-on, stationary unit with intelligent power management to maximize battery life during power outages.
 
 ## Battery
 - Integrated protection circuits (BMS or PCM)
@@ -32,6 +32,19 @@ For this project, an integrated ESP32 board with either the SIM7670G or A7670 4G
   The A7670 module also supports LTE Cat-1.
   
 These integrated boards typically operate at 3.3V, which is compatible with a 3.7V LiPo battery (with a small voltage drop) or can be powered via USB at 5V.
+
+## Buttons and Input System
+The phone will feature large tactile buttons (4-8) with distinct shapes and textures to assist blind users in identifying different functions. These buttons will be used for:
+- Making calls to pre-programmed numbers
+- Answering incoming calls (any button can answer a call)
+- Ending calls
+- Potentially adjusting volume or accessing other basic functions
+
+Requirements for the buttons:
+- Large surface area for easy location and pressing
+- Distinct tactile features for differentiation
+- Reliable mechanical design for frequent use
+- Clear tactile feedback when pressed
 
 ## Movement Sensor
 To enable call answering by simply moving or tumbling on the device.
