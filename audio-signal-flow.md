@@ -4,7 +4,8 @@
 * **Microcontroller (ESP32):** The ESP32 acts as the central control unit. It manages communication between all components, including the 4G module and the audio circuitry.
 * **Speaker:** The speaker reproduces the audio received from the 4G module, allowing the user to hear the caller.
 * **Microphone:** The microphone captures the user's voice, which is then transmitted to the caller via the 4G module.
-* **Audio Codec (Optional, but highly recommended):** An audio codec is a specialized chip that converts analog audio signals (from the microphone and to the speaker) to digital signals (for the 4G module) and vice-versa. This is essential for proper audio quality and compatibility.
+* **Audio Codec (Optional, but highly recommended):** An audio codec is a specialized chip that converts analog audio signals (from the microphone and to the speaker) to digital signals (for the 4G module) and vice-versa. This is essential for proper audio quality and compatibility.  
+  [What Are the Best Audio Codec Chips for your IoT Design?](https://www.nabto.com/best-audio-codec-chips/)
 
 **Audio Signal Flow:**
 
