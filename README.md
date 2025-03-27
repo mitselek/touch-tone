@@ -28,9 +28,12 @@ Phone Zero is a specialized communication device that eliminates traditional vis
 
 ## Current Documentation
 
-- [Hardware Requirements](hardware-requirements.md) - Detailed specifications for core components
-- [Phone Specifications](phone-specifications.md) - Core features and accessibility design
-- [Always-On Design Strategies](always-on-design-strategies.md) - Power management and longevity approaches
+- [Hardware Requirements](docs/hardware-requirements.md) - Detailed specifications for core components
+- [Phone Specifications](docs/phone-specifications.md) - Core features and accessibility design
+- [Always-On Design Strategies](docs/always-on-design-strategies.md) - Power management and longevity approaches
+- [Audio Signal Flow](docs/audio-signal-flow.md) - Audio pathway from microphone to speaker
+- [Audio Codec Chip Selection](docs/audio-codec-chip-selection.md) - Analysis of suitable audio codecs
+- [Battery Management](battery-management.md) - Battery protection and charging optimization
 
 ## Next Development Steps
 
