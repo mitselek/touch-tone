@@ -1,8 +1,14 @@
 # Hardware requirements for desktop phone
 
-The objective of this report is to identify the necessary hardware components for a custom-designed bedside phone tailored to the needs of an elderly blind user. This innovative device aims to provide a simple and accessible means of communication by eliminating the traditional visual display and relying instead on tactile buttons, movement-based call answering, and non-visual feedback mechanisms.
+## Executive Summary
 
-This is a stationary device.
+This report identifies the essential hardware components required for a custom bedside phone designed for an elderly blind user. The device aims to replace traditional visual interfaces with tactile inputs and non-visual feedback mechanisms for enhanced accessibility.
+
+The recommended battery configuration includes a 3.7V LiPo with integrated protection circuits (BMS), compatible with the ESP32's operating voltage. A high-quality speaker optimized for voice communication is essential, with emphasis on clarity rather than size constraints.
+
+For core processing and connectivity, the report suggests using either an ESP32 or Arduino microcontroller paired with a 4G module, with integrated boards like the Waveshare ESP32-S3 SIM7670G or Makerfabs ESP32S3 4G LTE CAT1 A7670X identified as strong candidates due to their combined processing and cellular capabilities.
+
+Additional required components include a movement sensor (combining accelerometer, gyroscope, and magnetometer) for gesture-based interaction and drop detection, power management systems to handle mains power and battery backup, and tactile feedback via a vibration module. The device is designed as an always-on, stationary unit with intelligent power management to maximize battery life during power outages.
 
 ## Battery
 - Integrated protection circuits (BMS or PCM)

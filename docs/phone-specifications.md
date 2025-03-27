@@ -1,5 +1,13 @@
 # Custom Bedside Phone Specifications for Elderly Blind User
 
+## Executive Summary
+
+This document outlines the specifications for a custom bedside phone designed specifically for an elderly blind user. The phone features large tactile buttons instead of a screen, with a customizable layout of 4-8 buttons arranged in two columns. The device supports customizable tactile button caps that can be arranged as pairs or as single larger buttons covering an entire row.
+
+The phone integrates a substantial LiPo battery for extended off-grid operation, high-quality speaker for clear calls, and uses either an ESP32 or Arduino microcontroller with a 4G module for cellular connectivity. Key accessibility features include movement-based call answering, battery status notifications via SMS, and hardware-level vibration feedback.
+
+The device is designed for continuous operation as a stationary, mains-powered unit with a USB-C port for backup power. Power management includes an always-on design with low-power optimization and comprehensive battery monitoring. The phone provides audio and vibration feedback for important operations and status changes, enhancing usability for the visually impaired user.
+
 ## Core Features
 
 *   **No Screen:** The device will have no visual display.

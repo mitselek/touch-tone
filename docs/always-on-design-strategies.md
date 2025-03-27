@@ -1,5 +1,15 @@
 # Long-Term Always-On Device Operation Strategies
 
+## Executive Summary
+
+This document outlines comprehensive strategies for designing an always-on bedside phone with extended operational lifespan and reliability. The approach focuses on three key areas: power management, system reliability, and battery longevity.
+
+For power management, the document recommends utilizing the ESP32's deep sleep capabilities to reduce consumption to as low as 10 μA when idle, implementing selective wake-up sources, and employing hardware-level power gating. Battery optimization strategies include selecting a high-quality LiPo with low self-discharge rates and implementing an advanced battery management system with adaptive charging algorithms and temperature compensation.
+
+To ensure reliability and longevity, the design incorporates passive cooling solutions, watchdog timers for recovery from software issues, self-diagnostic routines, and resilient firmware with minimal memory footprint. The document also details battery charging optimization for both mains and USB-C power sources, along with comprehensive health monitoring capabilities.
+
+Performance targets include 6-12 months of operation on a single charge during power outages, 500-1000 complete charge cycles, active mode power consumption under 50 mA, and an operational lifespan of 10-25 years. Key challenges identified include battery degradation, component reliability, thermal stress, software stability, and power supply reliability, with specific mitigation strategies provided for each.
+
 ## Power Management Techniques
 
 ### 1. Ultra-Low Power Microcontroller Optimization
