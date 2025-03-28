@@ -32,9 +32,9 @@ The project is condensed into three major phases: Planning & Component Selection
 **Description:** Select and order all necessary components, favoring availability over optimization  
 **Deliverables:**
 
-- MVP component list favoring available development boards and modules
-- Orders placed for all critical components with expedited shipping
-- Off-the-shelf alternatives identified for any custom components
+- MVP component list favoring available development boards and modules ([see completed document](./mvp-component-list.md))
+- Orders placed for all critical components with expedited shipping ([see completed document](./component-order-tracking.md))
+- Off-the-shelf alternatives identified for any custom components ([see completed document](./off-the-shelf-alternatives.md))
 
 **Success Criteria:**
 
