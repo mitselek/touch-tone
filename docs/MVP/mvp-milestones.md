@@ -17,8 +17,8 @@ The project is condensed into three major phases: Planning & Component Selection
 **Deliverables:**
 
 - MVP requirements document focused on core functionality only ([see completed document](./mvp-requirements.md))
-- Feature prioritization with clear "must-have" vs "future release" designations
-- Technical constraints document
+- Feature prioritization with clear "must-have" vs "future release" designations ([see completed document](./feature-prioritization.md))
+- Technical constraints document ([see completed document](./technical-constraints.md))
 
 **Success Criteria:**
 
