@@ -20,7 +20,7 @@ This document lists all components selected for the Phone Zero MVP, with priorit
   <tbody>
     <tr>
       <td>Combined ESP32 + 4G Module</td>
-      <td>LILYGO T-SIM7600</td>
+      <td><a href="https://lilygo.cc/products/t-sim7600">LILYGO T-SIM7600</a></td>
       <td>
         <ul>
           <li>ESP32-WROVER-E</li>
@@ -29,13 +29,13 @@ This document lists all components selected for the Phone Zero MVP, with priorit
           <li>MicroSIM slot</li>
         </ul>
       </td>
-      <td>$45.99</td>
+      <td>$50</td>
       <td>Amazon</td>
       <td>All-in-one solution eliminates integration challenges</td>
     </tr>
     <tr>
       <td>Alternative ESP32 + 4G</td>
-      <td>Waveshare SIM7600E-H 4G</td>
+      <td><a href="Waveshare SIM7600E-H 4G">Waveshare SIM7600E-H 4G</a></td>
       <td>
         <ul>
           <li>4G LTE Cat-4</li>
@@ -44,7 +44,7 @@ This document lists all components selected for the Phone Zero MVP, with priorit
           <li>AT command control</li>
         </ul>
       </td>
-      <td>$59.99</td>
+      <td>$60</td>
       <td>Waveshare</td>
       <td>Extensive documentation and support available</td>
     </tr>
@@ -67,7 +67,7 @@ This document lists all components selected for the Phone Zero MVP, with priorit
   <tbody>
     <tr>
       <td>Audio Codec</td>
-      <td>TLV320AIC3263</td>
+      <td><a href="https://www.mouser.ee/c/semiconductors/interface-ics/interface-codecs/?m=Texas%20Instruments&series=TLV320AIC3263">TLV320AIC3263</a></td>
       <td>
         <ul>
           <li>Ultra-low power stereo codec</li>
@@ -78,13 +78,13 @@ This document lists all components selected for the Phone Zero MVP, with priorit
           <li>Multiple analog inputs</li>
         </ul>
       </td>
-      <td>$11.95</td>
+      <td>14€</td>
       <td>Texas Instruments / Mouser</td>
       <td>Advanced voice processing capabilities through miniDSP, compatibility with both ESP32 (I2S) and 4G module (PCM)</td>
     </tr>
     <tr>
       <td>Speaker</td>
-      <td>Adafruit Mono Enclosed Speaker</td>
+      <td><a href="https://www.adafruit.com/product/1669">Adafruit Stereo Enclosed Speaker Set - 3W 4 Ohm</a></td>
       <td>
         <ul>
           <li>3W</li>
@@ -92,13 +92,13 @@ This document lists all components selected for the Phone Zero MVP, with priorit
           <li>40mm diameter</li>
         </ul>
       </td>
-      <td>$7.50</td>
+      <td>$7.5</td>
       <td>Adafruit</td>
       <td>Pre-enclosed, easy to mount, good volume</td>
     </tr>
     <tr>
       <td>Speaker Driver</td>
-      <td>Adafruit MAX98357A</td>
+      <td><a href="https://www.adafruit.com/product/3006">Adafruit MAX98357A</a></td>
       <td>
         <ul>
           <li>I2S input</li>
@@ -106,13 +106,13 @@ This document lists all components selected for the Phone Zero MVP, with priorit
           <li>Class D amplifier</li>
         </ul>
       </td>
-      <td>$5.95</td>
+      <td>$6</td>
       <td>Adafruit</td>
       <td>Direct I2S from ESP32, simple integration</td>
     </tr>
     <tr>
       <td>Microphone</td>
-      <td>Adafruit MEMS Microphone Breakout</td>
+      <td><a href="https://www.adafruit.com/search?q=MEMS+Microphone+Breakout">Adafruit MEMS Microphone Breakout</a></td>
       <td>
         <ul>
           <li>Omnidirectional</li>
