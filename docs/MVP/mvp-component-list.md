@@ -66,6 +66,23 @@ This document lists all components selected for the Phone Zero MVP, with priorit
   </thead>
   <tbody>
     <tr>
+      <td>Audio Codec</td>
+      <td>TLV320AIC3263</td>
+      <td>
+        <ul>
+          <li>Ultra-low power stereo codec</li>
+          <li>Programmable miniDSP</li>
+          <li>Support for I2S/PCM</li>
+          <li>DAC SNR: 101 dB</li>
+          <li>ADC SNR: 93 dB</li>
+          <li>Multiple analog inputs</li>
+        </ul>
+      </td>
+      <td>$11.95</td>
+      <td>Texas Instruments / Mouser</td>
+      <td>Advanced voice processing capabilities through miniDSP, compatibility with both ESP32 (I2S) and 4G module (PCM)</td>
+    </tr>
+    <tr>
       <td>Speaker</td>
       <td>Adafruit Mono Enclosed Speaker</td>
       <td>
