@@ -32,10 +32,10 @@ The core of the phone will be built around either an ESP32 or an Arduino microco
 
 For this project, an integrated ESP32 board with either the SIM7670G or A7670 4G module appears to be a strong contender due to its focus on low power consumption and the direct combination of processing and cellular connectivity.
 
-- **Waveshare ESP32-S3 SIM7670G 4G Development Board** combines an ESP32-S3 with a SIM7670G 4G Cat-1 module. This board supports various features including WiFi, Bluetooth, GNSS, and offers low power working modes, making it suitable for battery-operated devices.  
+- **[Waveshare ESP32-S3 SIM7670G 4G Development Board](https://www.waveshare.com/esp32-s3-sim7670g-4g.htm)** combines an ESP32-S3 with a SIM7670G 4G Cat-1 module. This board supports various features including WiFi, Bluetooth, GNSS, and offers low power working modes, making it suitable for battery-operated devices.  
   The SIM7670G module supports LTE Cat-1, which provides sufficient data rates (up to 10Mbps downlink and 5Mbps uplink) for voice calls and SMS.
   
-- **Makerfabs ESP32S3 4G LTE CAT1 A7670X** integrates an ESP32-S3 with an A7670 Cat-1 4G module, also featuring WiFi, Bluetooth, GNSS, a USB-C connector, and onboard charging capabilities.  
+- **[Makerfabs ESP32S3 4G LTE CAT1 A7670X](https://www.makerfabs.com/esp32s3-4g-lte.html)** integrates an ESP32-S3 with an A7670 Cat-1 4G module, also featuring WiFi, Bluetooth, GNSS, a USB-C connector, and onboard charging capabilities.  
   The A7670 module also supports LTE Cat-1.
   
 These integrated boards typically operate at 3.3V, which is compatible with a 3.7V LiPo battery (with a small voltage drop) or can be powered via USB at 5V.
