@@ -11,7 +11,7 @@ This document tracks the order status of all components required for the Phone Z
 | ESP32+4G Module | Amazon | ABC123456 | YYYY-MM-DD | Prime 1-Day | 1Z999AA10123456789 | Shipped | YYYY-MM-DD | Critical component, highest priority |
 | Speaker & Amp | Adafruit | AF12345 | YYYY-MM-DD | USPS Priority | 9400100000000000000000 | Processing | YYYY-MM-DD | Required for audio testing |
 | Buttons | Adafruit | AF12346 | YYYY-MM-DD | USPS Priority | 9400100000000000000000 | Shipped | YYYY-MM-DD | Required for UI testing |
-| Battery & Power | Adafruit | AF12347 | YYYY-MM-DD | USPS Priority | 9400100000000000000000 | Processing | YYYY-MM-DD | Required for power testing |
+| Battery & Power | Amazon | 304-9139704-1787549 | YYYY-MM-DD | Standard | - | Shipped | 2023-04-04 to 2023-04-23 | 802035 LiPo 3.7V 600mAh 2.22Wh battery, required for power testing |
 
 ## Secondary Components
 
