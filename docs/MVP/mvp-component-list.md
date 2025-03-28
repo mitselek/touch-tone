@@ -188,17 +188,18 @@ This document lists all components selected for the Phone Zero MVP, with priorit
   <tbody>
     <tr>
       <td>Battery</td>
-      <td>Adafruit Lithium Ion Battery</td>
+      <td>802035 LiPo Battery</td>
       <td>
         <ul>
           <li>3.7V</li>
-          <li>2500mAh</li>
-          <li>JST connector</li>
+          <li>600mAh</li>
+          <li>2.22Wh</li>
+          <li>Small form factor</li>
         </ul>
       </td>
-      <td>$14.95</td>
-      <td>Adafruit</td>
-      <td>Adequate capacity for MVP testing</td>
+      <td>$8.95</td>
+      <td>Amazon</td>
+      <td>Sufficient capacity for MVP testing while keeping size and weight manageable</td>
     </tr>
     <tr>
       <td>Battery Management</td>

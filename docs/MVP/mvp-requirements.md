@@ -31,7 +31,7 @@ By limiting the scope to these essential features, development time can be signi
 - **Connectivity:** Basic 4G module (SIM7670G or A7670) with voice capability
 - **Audio components:** Microphone and speaker with minimal amplification
 - **Power input:** USB-C connection for power and charging
-- **Battery:** Small LiPo for demo purposes (2-8 hour backup vs. months in full version)
+- **Battery:** 802035 LiPo (3.7V, 600mAh, 2.22Wh) providing approximately 4-6 hours of backup
 - **Enclosure:** Simple protective case (3D printed or modified existing box)
 
 ### 4. Minimum Power Management
