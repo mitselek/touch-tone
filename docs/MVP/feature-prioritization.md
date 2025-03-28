@@ -61,7 +61,6 @@ By clearly delineating feature priorities, this framework helps maintain focus o
 | Extended battery life | Next release | Medium | High |
 | Advanced tactile button designs | Next release | Medium | High |
 | SMS battery notifications | Next release | Low | Medium |
-| Movement sensor for call answering | Next release | Medium | Medium |
 | Vibration feedback | Next release | Low | Medium |
 
 #### Mid-Term Features

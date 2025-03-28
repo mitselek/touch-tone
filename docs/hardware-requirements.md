@@ -58,9 +58,9 @@ Requirements for the buttons:
 
 ## Movement Sensor
 
-- To enable call answering by simply moving or tumbling on the device
 - To detect if device is dropped from table
 - Combination of gyroscope, accelerometer as well a broadspectrum magnetic field measurements should provide reliable readings
+- For potential future features requiring movement detection
 
 ## Power Management and Charging
 

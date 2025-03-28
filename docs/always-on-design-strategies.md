@@ -17,7 +17,7 @@ Performance targets include 6-12 months of operation on a single charge during p
 - **ESP32 Deep Sleep Mode**
   - Current consumption reduced to as low as 10 µA in deep sleep
   - Selective wake-up sources:
-    - Movement sensor triggers
+    - Button press detection
     - Incoming call detection
     - Scheduled SMS battery status updates
   - Utilize ESP32's RTC (Real-Time Clock) controller for minimal power consumption
