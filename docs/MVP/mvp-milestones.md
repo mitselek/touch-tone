@@ -6,171 +6,212 @@ This document outlines a highly compressed development schedule focused on rapid
 
 The project is condensed into three major phases: Planning & Component Selection, MVP Development, and MVP Validation. This aggressive timeline reduces the original 40-week timeline to just 10 weeks by focusing exclusively on essential features, using off-the-shelf components where possible, and simplifying the physical design.
 
+---
+
 ## Phase 1: Planning & Component Selection (2 weeks)
 
 ### Milestone 1.1: Core Requirements Definition
-**Timeframe:** Days 1-3
-**Description:** Define the absolute minimum requirements for a functional MVP
+
+**Timeframe:** Days 1-3  
+**Description:** Define the absolute minimum requirements for a functional MVP  
 **Deliverables:**
+
 - MVP requirements document focused on core functionality only ([see completed document](./mvp-requirements.md))
 - Feature prioritization with clear "must-have" vs "future release" designations
 - Technical constraints document
 
 **Success Criteria:**
+
 - Requirements aligned with MVP philosophy (minimum feature set to prove concept)
 - Team consensus on MVP scope
 
 ### Milestone 1.2: Rapid Component Selection
-**Timeframe:** Days 4-10
-**Dependencies:** 1.1
-**Description:** Select and order all necessary components, favoring availability over optimization
+
+**Timeframe:** Days 4-10  
+**Dependencies:** 1.1  
+**Description:** Select and order all necessary components, favoring availability over optimization  
 **Deliverables:**
+
 - MVP component list favoring available development boards and modules
 - Orders placed for all critical components with expedited shipping
 - Off-the-shelf alternatives identified for any custom components
 
 **Success Criteria:**
+
 - All components ordered within the first week
 - Core components (ESP32, 4G module) selected with confirmed availability
 - Development boards selected where possible to minimize custom electronics
 
 ### Milestone 1.3: MVP Architecture Design
-**Timeframe:** Days 11-14 (overlapping with receiving components)
-**Dependencies:** 1.1, 1.2
-**Description:** Create simplified hardware and software architecture for MVP
+
+**Timeframe:** Days 11-14 (overlapping with receiving components)  
+**Dependencies:** 1.1, 1.2  
+**Description:** Create simplified hardware and software architecture for MVP  
 **Deliverables:**
+
 - Block diagram showing component connections
 - Power requirements calculation
 - Basic firmware flowchart
 - Simplified API definitions for component interactions
 
 **Success Criteria:**
+
 - Architecture covers essential functionality only
 - Design leverages development boards to minimize custom electronics
 - Critical paths for core functionality clearly identified
 
+---
+
 ## Phase 2: MVP Development (5 weeks)
 
 ### Milestone 2.1: Core Electronics Assembly
-**Timeframe:** Days 15-21
-**Dependencies:** 1.2, 1.3
-**Description:** Assemble core electronic components using development boards and modules
+
+**Timeframe:** Days 15-21  
+**Dependencies:** 1.2, 1.3  
+**Description:** Assemble core electronic components using development boards and modules  
 **Deliverables:**
+
 - Functional breadboard/prototype board assembly
 - Power system connected and tested
 - ESP32 and 4G module successfully communicating
 
 **Success Criteria:**
+
 - ESP32 boots successfully
 - 4G module responds to basic commands
 - Power system provides stable power to all components
 
 ### Milestone 2.2: Basic Firmware Implementation
-**Timeframe:** Days 18-28 (overlapping with 2.1)
-**Dependencies:** 1.3, 2.1 (partial)
-**Description:** Implement minimal firmware supporting core phone functionality
+
+**Timeframe:** Days 18-28 (overlapping with 2.1)  
+**Dependencies:** 1.3, 2.1 (partial)  
+**Description:** Implement minimal firmware supporting core phone functionality  
 **Deliverables:**
+
 - Call handling code (make/receive calls)
 - Button input detection
 - Basic power management
 - Simple SMS functionality for battery alerts
 
 **Success Criteria:**
+
 - System can make calls to pre-programmed numbers
 - System can receive incoming calls
 - Button presses correctly detected
 - Basic SMS notifications working
 
 ### Milestone 2.3: Simple Tactile Interface
-**Timeframe:** Days 22-28 (parallel with 2.2)
-**Dependencies:** 1.1, 1.3
-**Description:** Create basic tactile buttons using readily available components
+
+**Timeframe:** Days 22-28 (parallel with 2.2)  
+**Dependencies:** 1.1, 1.3  
+**Description:** Create basic tactile buttons using readily available components  
 **Deliverables:**
+
 - 4-8 large tactile buttons connected to input pins
 - Basic tactile differentiation between buttons (could use existing buttons with added texture)
 - Simple mounting system for buttons
 
 **Success Criteria:**
+
 - Each button produces distinct electrical signal when pressed
 - Buttons have tactile differences that can be felt
 - Buttons are large enough for easy location
 
 ### Milestone 2.4: Simplified Enclosure
-**Timeframe:** Days 25-35
-**Dependencies:** 2.1, 2.3
-**Description:** Create basic protective enclosure using rapid fabrication techniques
+
+**Timeframe:** Days 25-35  
+**Dependencies:** 2.1, 2.3  
+**Description:** Create basic protective enclosure using rapid fabrication techniques  
 **Deliverables:**
+
 - Simple laser-cut or 3D printed enclosure
 - Internal mounting for components
 - Openings for buttons, speaker, microphone, and cables
 
 **Success Criteria:**
+
 - Enclosure provides physical protection for components
 - Components securely mounted
 - Easy access to buttons and ports
 
 ### Milestone 2.5: Integrated MVP Assembly
-**Timeframe:** Days 36-42
-**Dependencies:** 2.1, 2.2, 2.3, 2.4
-**Description:** Integrate all components into a functional MVP prototype
+
+**Timeframe:** Days 36-42  
+**Dependencies:** 2.1, 2.2, 2.3, 2.4  
+**Description:** Integrate all components into a functional MVP prototype  
 **Deliverables:**
+
 - Complete assembled MVP prototype
 - Final firmware loaded
 - Power system connected to both mains and battery
 - Testing checklist for core functionality
 
 **Success Criteria:**
+
 - Device powers on properly
 - All components interconnected and communicating
 - Firmware operates as expected on the assembled device
 
+---
+
 ## Phase 3: MVP Validation (3 weeks)
 
 ### Milestone 3.1: Core Functionality Testing
-**Timeframe:** Days 43-49
-**Dependencies:** 2.5
-**Description:** Test all essential functions of the MVP
+
+**Timeframe:** Days 43-49  
+**Dependencies:** 2.5  
+**Description:** Test all essential functions of the MVP  
 **Deliverables:**
+
 - Functionality test report
 - Bug/issue list with severity ratings
 - Performance measurements for critical functions
 - Battery life estimates under typical usage
 
 **Success Criteria:**
+
 - Device makes and receives calls successfully
 - Buttons function reliably
 - Power switching between mains and battery works
 - Battery notifications sent correctly
 
 ### Milestone 3.2: Quick Usability Assessment
-**Timeframe:** Days 50-56
-**Dependencies:** 3.1
-**Description:** Conduct limited usability testing with 1-3 representative users
+
+**Timeframe:** Days 50-56  
+**Dependencies:** 3.1  
+**Description:** Conduct limited usability testing with 1-3 representative users  
 **Deliverables:**
+
 - Basic usability findings
 - Critical usability issues list
 - Suggested immediate improvements
 - User feedback summary
 
 **Success Criteria:**
+
 - Test users can operate basic calling functionality
 - Critical accessibility barriers identified
 - Clear direction for usability improvements in next iteration
 
 ### Milestone 3.3: MVP Refinement
-**Timeframe:** Days 57-70
-**Dependencies:** 3.1, 3.2
-**Description:** Implement critical fixes and minor improvements based on testing
+
+**Timeframe:** Days 57-70  
+**Dependencies:** 3.1, 3.2  
+**Description:** Implement critical fixes and minor improvements based on testing  
 **Deliverables:**
+
 - Updated firmware addressing critical issues
 - Minor hardware adjustments where feasible
 - Updated documentation reflecting actual MVP capabilities
 - MVP demonstration script
 
 **Success Criteria:**
+
 - Critical functional issues resolved
 - Most severe usability issues addressed
 - MVP is stable enough for demonstration purposes
+
+---
 
 ## MVP Success Metrics
 

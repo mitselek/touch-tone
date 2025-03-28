@@ -12,13 +12,16 @@ Several potential BMS modules for single-cell 3.7V LiPo batteries were reviewed,
 
 The report concluded by recommending the addition of a dedicated hardware battery health controller (BMS) to the project. This is crucial for ensuring the safety, reliability, and longevity of the LiPo battery, especially given the "always-on" nature of the device and the need for advanced battery management features. The specific choice of BMS module will depend on the project's priorities regarding cost, size, and the level of advanced features required.
 
+---
+
 ## 1. Introduction
 
-The increasing demand for uninterrupted operation in electronic devices has led to a greater reliance on battery backup systems, even in devices primarily powered by mains electricity. This ensures functionality during power outages, providing a seamless user experience. 
+The increasing demand for uninterrupted operation in electronic devices has led to a greater reliance on battery backup systems, even in devices primarily powered by mains electricity. This ensures functionality during power outages, providing a seamless user experience.
 
 In the context of a device utilizing a single-cell 3.7V 2400mAh Lithium Polymer (LiPo) battery as a backup to a primary mains power source, the usage pattern typically involves infrequent discharge cycles. This specific scenario raises a critical question regarding the necessity of a dedicated Battery Management System (BMS).
 
 While mains power serves as the primary energy source, the LiPo battery must be maintained in a state of readiness to provide power during outages. This necessitates careful management to ensure safety, maximize the battery's lifespan, and control the charging process effectively. Key areas of concern include:
+
 - Safeguarding against overcharge and over-discharge
 - Monitoring temperature to prevent thermal issues
 - Implementing appropriate charging algorithms
@@ -33,6 +36,7 @@ A Battery Management System (BMS) is an electronic system designed to oversee th
 One of the primary functions is the continuous monitoring of vital battery parameters, including voltage, current, temperature, and the estimation of the State of Charge (SOC) and State of Health (SOH). Monitoring these parameters allows the system to understand the battery's current condition, its remaining capacity, and its overall lifespan.
 
 Furthermore, a BMS provides essential battery protection by actively preventing the battery from operating outside its safe limits. This includes safeguarding against:
+
 - Overcharge, which can lead to dangerous thermal runaway
 - Over-discharge, which can cause irreversible damage to the cell
 - Overcurrent conditions that can stress the battery
@@ -49,6 +53,7 @@ Moreover, a sophisticated BMS continually optimizes battery performance through 
 Finally, a modern BMS can report operational status and diagnostic information to external devices, allowing users or the system itself to monitor the battery's condition and take proactive maintenance steps.
 
 Utilizing a dedicated BMS offers several key benefits:
+
 - **Enhanced safety** is paramount, as the BMS prevents the battery from operating outside its SOA, significantly reducing the risks associated with LiPo batteries. Considering that even small LiPo batteries in consumer electronics have been known to cause fires, robust safety measures are crucial regardless of the battery's size.
 - **Extended lifespan and improved reliability** by ensuring that the battery is used within its declared SOA, protecting it from aggressive usage, rapid charge and discharge cycles, and extreme temperatures. Over time, subtle differences in cell performance, such as variations in capacity, internal resistance, and self-discharge rates, can widen. A BMS proactively manages these imbalances, preventing premature degradation of the battery.
 - **Optimized performance and effective capacity management**. While cell balancing is more pertinent to multi-cell packs, a high-quality BMS can optimize charging and discharging profiles for a single cell, ensuring it operates at peak efficiency throughout its lifecycle and maximizes the usable capacity.
@@ -128,6 +133,7 @@ Therefore, the user's requirement for adaptive charging algorithms, temperature 
 ## 7. Suitable BMS Modules for Single-Cell 3.7V 2400mAh LiPo Batteries
 
 When selecting a suitable BMS module for a single-cell 3.7V 2400mAh LiPo battery, several factors should be taken into consideration:
+
 - **Size constraints** are often a concern in embedded devices, so the physical dimensions of the BMS module are important.
 - **Cost** is another key factor, requiring a balance between the module's price and the overall project budget.
 - **Integration with the ESP32 microcontroller** is crucial, necessitating compatibility in terms of communication protocols (such as I2C or UART) and voltage levels (the ESP32 operates at 3.3V logic).

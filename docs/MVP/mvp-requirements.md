@@ -6,15 +6,19 @@ This document defines the minimum viable product (MVP) requirements for Phone Ze
 
 By limiting the scope to these essential features, development time can be significantly reduced from months to weeks, allowing for faster prototyping, testing, and iteration based on user feedback. This approach prioritizes functional validation over feature completeness, with the understanding that additional capabilities can be incorporated in subsequent iterations.
 
+---
+
 ## Core Functionality Requirements
 
 ### 1. Basic Calling Capabilities
+
 - **Make calls:** Ability to call 6 pre-programmed phone numbers using dedicated buttons
 - **Receive calls:** Basic ringtone with ability to answer by pressing any button
 - **End calls:** End active calls by pressing any button
 - **Audio quality:** Sufficient clarity for intelligible voice communication
 
 ### 2. Minimum Physical Interface
+
 - **Button count:** 6 total buttons (4 regular, 2 double)
 - **Button size:** Large enough for easy location and operation by elderly users
 - **Button differentiation:** Basic tactile differences between buttons (shape/texture/size)
@@ -22,6 +26,7 @@ By limiting the scope to these essential features, development time can be signi
 - **Speaker:** Basic speaker with adequate volume for voice calls
 
 ### 3. Essential Hardware
+
 - **Microcontroller:** ESP32 (using development board for simplicity)
 - **Connectivity:** Basic 4G module (SIM7670G or A7670) with voice capability
 - **Audio components:** Microphone and speaker with minimal amplification
@@ -30,10 +35,13 @@ By limiting the scope to these essential features, development time can be signi
 - **Enclosure:** Simple protective case (3D printed or modified existing box)
 
 ### 4. Minimum Power Management
+
 - **Power modes:** Basic on/off functionality
 - **Power switching:** Simple circuit to switch between USB-C power and battery
 - **Battery monitoring:** Basic voltage monitoring without complex BMS features
 - **Charging:** USB-C compatible charging circuit (leveraging standard USB PD where possible)
+
+---
 
 ## Features Explicitly Deferred for Post-MVP
 
