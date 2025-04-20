@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "../my_esp32"
+		},
+		{
+			"name": "250413-185449-espidf-arduino-blink",
+			"path": "."
+		}
+	],
+	"settings": {}
+}
