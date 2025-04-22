@@ -9,6 +9,7 @@
 
 // Function declaration
 void processSmsNotification(String notificationLine);
+void processIncomingCall(String notificationLine);
 
 void setup() {
   // Start Serial monitor communication
@@ -85,6 +86,13 @@ void processSmsNotification(String notificationLine) {
     Serial.println("--------------------------------------------------");
 }
 
+// Function definition to process incoming call notifications
+void processIncomingCall(String notificationLine) {
+    Serial.println("\n*** Incoming Call Notification Received! ***");
+    Serial.println("Type 'ATA' to answer or 'ATH' to hang up.");
+    Serial.println("--------------------------------------------------");
+}
+
 void loop() {
   // Forward data from SIM800L to Serial Monitor, reading line by line
   if (SIM800_SERIAL.available()) {
@@ -98,17 +106,27 @@ void loop() {
         if (line.startsWith("+CMTI:")) {
             processSmsNotification(line); // Call the dedicated function
         }
+
+        // Check for incoming call notification
+        if (line.startsWith("RING")) {
+            processIncomingCall(line); // Call the dedicated function
+        }
     }
   }
 
   // Forward data from Serial Monitor to SIM800L
   if (Serial.available()) {
-    char c = Serial.read();
-    SIM800_SERIAL.write(c);
-    if (c != '\n' && c != '\r') { // Avoid echoing newline/carriage return
-        Serial.write(c);
+    String command = Serial.readStringUntil('\n');
+    command.trim(); // Remove potential leading/trailing whitespace/CR
+    if (command.equalsIgnoreCase("ATA")) {
+        SIM800_SERIAL.println("ATA"); // Answer the call
+        Serial.println("Answering the call...");
+    } else if (command.equalsIgnoreCase("ATH")) {
+        SIM800_SERIAL.println("ATH"); // Hang up the call
+        Serial.println("Hanging up the call...");
     } else {
-        Serial.println(); // Print newline when Enter is pressed
+        SIM800_SERIAL.println(command); // Forward other commands to SIM800L
+        Serial.println(command); // Echo the command back to the Serial Monitor
     }
   }
 }
