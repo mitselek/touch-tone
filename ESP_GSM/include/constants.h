@@ -31,8 +31,8 @@
 
 // Modem configuration parameters
 #define MODEM_UART_NUM        UART_NUM_2  // Using UART2 for SIM800L
-#define MODEM_TX_PIN          4           // ESP32 TX pin connected to SIM800L RX
-#define MODEM_RX_PIN          0           // ESP32 RX pin connected to SIM800L TX
+#define MODEM_TX_PIN          17          // ESP32 TX pin connected to SIM800L RX (changed from GPIO4)
+#define MODEM_RX_PIN          16          // ESP32 RX pin connected to SIM800L TX (changed from GPIO0)
 #define MODEM_BUFFER_SIZE     1024        // Size of buffer for reading from modem
 #define MODEM_COMMAND_TIMEOUT 2000        // Maximum wait time in ms for most AT commands
 #define MODEM_CPIN_TIMEOUT    5000        // Extended timeout for AT+CPIN? (ms)

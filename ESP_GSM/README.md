@@ -5,8 +5,8 @@ This project uses an ESP32 microcontroller connected to a SIM800L GSM modem and 
 ## Pin Layout
 
 * **SIM800L Modem (UART2):**
-  * ESP32 **GPIO 4 (TX)** <-> SIM800L **RX**
-  * ESP32 **GPIO 0 (RX)** <-> SIM800L **TX**
+  * ESP32 **GPIO 17 (TX)** <-> SIM800L **RX**
+  * ESP32 **GPIO 16 (RX)** <-> SIM800L **TX**
   * Ensure common **GND** connection between ESP32 and SIM800L.
   * Provide adequate power supply to the SIM800L (typically requires 2A peak current).
 * **LED:**
@@ -15,22 +15,18 @@ This project uses an ESP32 microcontroller connected to a SIM800L GSM modem and 
 
 ## Connection Diagram
 
-``` ascii
-+-------+         +--------+
-| ESP32 |         | SIM800L|
-|       |         |        |
-| GPIO4 |-------->| RX     |
-| GPIO0 |<--------| TX     |
-| GND   |---------| GND    |
-|       |         |        |
-| GPIO5 |---+     +--------+
-|       |   |
-+-------+   |     +-----+
-            +---->| LED |---[R]---GND
-                  +-----+
+```ascii
++------+     +-------+
+|ESP32 |     |SIM800L|
+|GPIO17|---->|RX     |
+|GPIO16|<----|TX     |
+|GND   |-----|GND    |
+|      |     +-------+
+|GPIO5 |--+  
++------+  |  +---+
+          +->|LED|--[R]--GND
+             +---+
 ```
-
-*Note: GPIO 0 is often used for flashing mode. Ensure your setup allows for both normal operation and flashing.*
 
 ---
 
