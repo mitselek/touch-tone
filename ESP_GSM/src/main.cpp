@@ -31,6 +31,10 @@ void setup() {
   SIM800_SERIAL.println("AT");
   delay(100); // Wait a bit for response
 
+  // Disable command echo
+  SIM800_SERIAL.println("ATE0");
+  delay(100); // Wait a bit for response
+
   // Set SMS mode to Text Mode
   SIM800_SERIAL.println("AT+CMGF=1");
   delay(100); // Wait a bit for response
@@ -59,10 +63,19 @@ void processSmsNotification(String notificationLine) {
         if (messageIndex > 0) {
             Serial.print("Reading SMS at index: ");
             Serial.println(messageIndex);
-            SIM800_SERIAL.print("AT+CMGR=");
+            SIM800_SERIAL.print("AT+CMGR="); // Send command to read SMS at the specified index
             SIM800_SERIAL.println(messageIndex);
             // The response will be printed in the next loop iteration(s)
-            // Consider adding AT+CMGD=index later to delete the message
+
+            // Add a small delay before deleting, allowing time for read command processing if needed
+            delay(200); 
+
+            Serial.print("Deleting SMS at index: ");
+            Serial.println(messageIndex);
+            SIM800_SERIAL.print("AT+CMGD="); // Send command to delete SMS at the specified index
+            SIM800_SERIAL.println(messageIndex);
+            // The response (usually "OK") will be printed in the next loop iteration(s)
+
         } else {
             Serial.println("Could not parse SMS index.");
         }
@@ -78,6 +91,7 @@ void loop() {
     String line = SIM800_SERIAL.readStringUntil('\n');
     line.trim(); // Remove potential leading/trailing whitespace/CR
     if (line.length() > 0) { // Only print if the line is not empty
+        Serial.print("SIM800L: ");
         Serial.println(line); // Print the received line
 
         // Check for new SMS notification
@@ -91,7 +105,6 @@ void loop() {
   if (Serial.available()) {
     char c = Serial.read();
     SIM800_SERIAL.write(c);
-    // Echo typed character back to Serial Monitor for better user experience
     if (c != '\n' && c != '\r') { // Avoid echoing newline/carriage return
         Serial.write(c);
     } else {
