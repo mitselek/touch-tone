@@ -1,5 +1,5 @@
 .pio
-# include/private_config.h
+include/private_config.h
 *.log
 *.tmp
 *.bak
