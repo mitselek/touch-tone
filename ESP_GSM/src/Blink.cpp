@@ -114,7 +114,7 @@ void process_command(char cmd) {
         case 't':  // 't' for "Text message"
             ESP_LOGI(TAG, "Sending test SMS to predefined number...");
             if (modem_check_sim_status() == ESP_OK) {
-                esp_err_t sms_result = modem_send_sms(predefined_phone_number, "Hello World from ESP32!");
+                esp_err_t sms_result = modem_send_sms(predefined_phone_number, "Saada mulle sõnum!");
                 if (sms_result == ESP_OK) {
                     ESP_LOGI(TAG, "Test SMS sent successfully!");
                 } else {
@@ -279,6 +279,9 @@ void app_main(void)
                 process_command(input_buffer[i]);
             }
         }
+
+        // Poll for new SMS notifications from modem
+        poll_modem_notifications();
 
         // Execute the selected LED pattern
         execute_pattern();

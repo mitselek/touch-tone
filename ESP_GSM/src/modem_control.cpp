@@ -88,7 +88,7 @@ void configure_modem(void) {
             ESP_LOGI(TAG, "SMS text mode enabled");
         }
         
-        modem_send_command("AT+CNMI=1,0,0,0,0", response, sizeof(response), 3000);
+        modem_send_command("AT+CNMI=2,1,0,0,0", response, sizeof(response), 3000);
         modem_send_command("AT+CPMS=\"SM\",\"SM\",\"SM\"", response, sizeof(response), 3000);
         
         ESP_LOGI(TAG, "Checking SIM status...");
@@ -506,6 +506,150 @@ void print_signal_quality(void) {
             ESP_LOGI(TAG, "Signal: %s → %d dBm, BER=%d", resp, dbm, ber);
         } else {
             ESP_LOGW(TAG, "Can't parse CSQ: %s", resp);
+        }
+    }
+}
+
+// Helper: Read and print SMS at given index, and reply with appended message
+void read_and_print_sms(int index) {
+    char cmd[32];
+    // Use static buffers to avoid stack overflow
+    static char response[MODEM_BUFFER_SIZE];
+    static char msg_body[MODEM_BUFFER_SIZE];
+    static char reply[MODEM_BUFFER_SIZE];
+    bool read_success = false; // Flag to track if read was successful
+    
+    memset(response, 0, sizeof(response)); // Clear static buffer before use
+    snprintf(cmd, sizeof(cmd), "AT+CMGR=%d", index);
+    
+    if (modem_send_command(cmd, response, sizeof(response), MODEM_COMMAND_TIMEOUT * 2) == ESP_OK) {
+        read_success = true; // Mark read as successful
+        ESP_LOGI(TAG, "SMS at index %d: %s", index, response);
+
+        // Parse sender and message body
+        char sender[32] = {0};
+        char *p = strstr(response, "+CMGR:");
+        char *msg_start = NULL; // Initialize msg_start
+        if (p) {
+            // ... existing sender parsing logic ...
+            // Find sender number (usually the second quoted string)
+            char *q1 = strchr(p, '"');
+            char *q4 = NULL; // Pointer to end of last quote in header
+            if (q1) {
+                char *q2 = strchr(q1 + 1, '"'); // End of first quoted string
+                if (q2) {
+                    char *q3 = strchr(q2 + 1, '"'); // Start of second quoted string (sender)
+                    if (q3) {
+                        q4 = strchr(q3 + 1, '"'); // End of second quoted string
+                        if (q4 && (q4 - q3 > 1)) {
+                            int len = q4 - q3 - 1;
+                            if (len > 0 && len < (int)sizeof(sender)) {
+                                strncpy(sender, q3 + 1, len);
+                                sender[len] = 0; // Null-terminate
+                            }
+                        }
+                        // Look for the 4th quote pair (timestamp) to find end of header
+                        char *q5 = strchr(q4 + 1, '"');
+                        if (q5) {
+                             q4 = strchr(q5 + 1, '"'); // Update q4 to point after timestamp quote
+                        }
+                    }
+                }
+            }
+
+            // Find message body: starts after the last quote of the header
+            if (q4) {
+                 msg_start = q4 + 1;
+                 // Trim leading whitespace after the last quote
+                 while (*msg_start == ' ') {
+                     msg_start++;
+                 }
+            } else {
+                 // Fallback: Try finding newline after +CMGR: if quotes weren't parsed correctly
+                 msg_start = strstr(p, "\n");
+                 if (msg_start) {
+                     msg_start++; // skip '\n'
+                     while (*msg_start == '\r' || *msg_start == '\n' || *msg_start == ' ') {
+                         msg_start++;
+                     }
+                 }
+            }
+
+
+            if (msg_start && *msg_start != '\0') { // Check if msg_start is valid and not end of string
+                // ... existing message body parsing logic ...
+                char *msg_end = strstr(msg_start, " OK"); // Look for " OK" marker
+                size_t body_len = msg_end ? (size_t)(msg_end - msg_start) : strlen(msg_start);
+                // Trim trailing whitespace just before " OK" or end of string
+                while (body_len > 0 && (msg_start[body_len-1] == ' ')) {
+                    body_len--;
+                }
+
+                if (body_len > 0 && body_len < sizeof(msg_body)) {
+                    memset(msg_body, 0, sizeof(msg_body)); // Clear static buffer
+                    strncpy(msg_body, msg_start, body_len);
+                    msg_body[body_len] = 0; // Null-terminate
+                    ESP_LOGI(TAG, "SMS from %s: %s", sender, msg_body);
+
+                    // Reply if sender is valid
+                    if (strlen(sender) > 0) {
+                        memset(reply, 0, sizeof(reply)); // Clear static buffer
+                        size_t max_msg = sizeof(reply) - strlen(" Sulle ka!") - 1;
+                        strncpy(reply, msg_body, max_msg);
+                        reply[max_msg] = 0; // Ensure null termination after copy
+                        strncat(reply, " Sulle ka!", sizeof(reply) - strlen(reply) - 1);
+                        
+                        esp_err_t r = modem_send_sms(sender, reply);
+                        if (r == ESP_OK) {
+                            ESP_LOGI(TAG, "Replied to %s: %s", sender, reply);
+                        } else {
+                            ESP_LOGE(TAG, "Failed to reply to %s", sender);
+                        }
+                    } else {
+                         ESP_LOGW(TAG, "Could not parse sender number from SMS response.");
+                    }
+                } else {
+                     ESP_LOGW(TAG, "Could not parse message body or body is empty. Body len: %d", body_len);
+                }
+            } else {
+                 ESP_LOGW(TAG, "Could not find message body start.");
+            }
+        } else {
+             ESP_LOGW(TAG, "Could not find +CMGR marker in response.");
+        }
+        // --- Deletion logic moved outside this block ---
+    } else {
+        ESP_LOGE(TAG, "Failed to read SMS at index %d", index);
+    }
+
+    // Always attempt to delete the SMS after trying to process it
+    ESP_LOGI(TAG, "Attempting to delete SMS at index %d", index);
+    memset(response, 0, sizeof(response)); // Clear before reuse
+    snprintf(cmd, sizeof(cmd), "AT+CMGD=%d", index);
+    if (modem_send_command(cmd, response, sizeof(response), MODEM_COMMAND_TIMEOUT) == ESP_OK) {
+         ESP_LOGI(TAG, "Deleted SMS at index %d", index);
+    } else {
+         // Log error, but SMS might already be gone or index invalid
+         ESP_LOGE(TAG, "Failed to delete SMS at index %d (maybe already deleted?)", index);
+    }
+}
+
+// Poll for unsolicited modem notifications (e.g., +CMTI)
+void poll_modem_notifications(void) {
+    // Non-blocking read from UART buffer for unsolicited notifications
+    uint8_t buf[MODEM_BUFFER_SIZE];
+    int len = uart_read_bytes(MODEM_UART_NUM, buf, sizeof(buf), 0);
+    if (len > 0) {
+        buf[len] = '\0';
+        char *cmti = strstr((char*)buf, "+CMTI:");
+        if (cmti) {
+            // Example: +CMTI: "SM",3
+            int index = 0;
+            char mem[8] = {0};
+            if (sscanf(cmti, "+CMTI: \"%7[^\"]\",%d", mem, &index) == 2) {
+                ESP_LOGI(TAG, "New SMS received in %s at index %d", mem, index);
+                read_and_print_sms(index);
+            }
         }
     }
 }

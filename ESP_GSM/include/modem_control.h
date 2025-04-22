@@ -12,6 +12,8 @@ esp_err_t modem_enter_pin(const char* pin_code);
 esp_err_t modem_send_sms(const char* phone_number, const char* message);
 void print_network_status(void);
 void print_signal_quality(void);
+void poll_modem_notifications(void);
+void read_and_print_sms(int index);
 
 #ifdef __cplusplus
 }
