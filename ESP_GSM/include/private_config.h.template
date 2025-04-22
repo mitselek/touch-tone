@@ -1,5 +1,0 @@
-#pragma once
-
-// Secret configuration that should not be committed to Git
-// Rename this file to private_config.h and update with your details
-#define PREDEFINED_PHONE_NUMBER "+1234567890"  // Replace with your actual phone number

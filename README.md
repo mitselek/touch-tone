@@ -85,6 +85,18 @@ Phone Zero is a specialized communication device that eliminates traditional vis
 - 3D print prototypes for testing fit and ergonomics
 - Iterate based on physical testing results
 
+## Setup Instructions
+
+### Private Configuration
+
+This project uses a private configuration file for sensitive information like phone numbers.
+
+To set up:
+1. Navigate to `ESP_GSM/include/`
+2. Edit `private_config.h` and replace the placeholder values with your actual information
+
+The `private_config.h` file is ignored by Git to prevent accidentally committing sensitive information.
+
 ## Contributing
 
 This project is currently in development. If you're interested in contributing, please contact the project maintainers.
