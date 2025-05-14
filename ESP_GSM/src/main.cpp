@@ -409,6 +409,25 @@ void processIncomingCall(String notificationLine)
   printWithTime("--------------------------------------------------");
 }
 
+// Helper function to check if a line is mostly printable or has a known prefix
+bool isPrintableOrKnownPrefix(const String &line) {
+  // Allow if line starts with known SIM800L prefixes
+  if (line.startsWith("+CMTI:") || line.startsWith("+CMGR:") || line.startsWith("+CREG:") ||
+      line.startsWith("RING") || line.startsWith("NO CARRIER") || line.startsWith("Call Ready") ||
+      line.startsWith("+CSQ:") || line.startsWith("+CPIN:") || line.startsWith("+CSMINS:") ||
+      line.startsWith("OK") || line.startsWith(">") || line.startsWith("AT")) {
+    return true;
+  }
+  // Count printable ASCII chars
+  int printable = 0;
+  for (size_t i = 0; i < line.length(); ++i) {
+    char c = line[i];
+    if ((c >= 32 && c <= 126) || c == '\t') printable++;
+  }
+  // If more than 70% of the line is printable, allow it
+  return (line.length() > 0 && (printable * 100 / line.length()) > 70);
+}
+
 void loop()
 {
   // Forward data from SIM800L to Serial Monitor, reading line by line
@@ -416,63 +435,65 @@ void loop()
   {
     String line = SIM800_SERIAL.readStringUntil('\n');
     line.trim(); // Remove potential leading/trailing whitespace/CR
-    if (line.length() > 0)
-    {                                // Only print if the line is not empty
-      printWithTime("tic: " + line); // Print the received line with time
-
-      // SMS state machine
-      if (smsState == SMS_WAIT_HEADER || smsState == SMS_WAIT_CONTENT)
-      {
-        handleSmsLine(line);
-      }
-
-      // Handle "NO CARRIER" message
-      if (line.equalsIgnoreCase("NO CARRIER"))
-      {
-        printWithTime("Call disconnected. Stopping DTMF transmission.");
-        return; // Exit early to stop further processing
-      }
-
-      // Check for "Call Ready" message
-      if (line.equalsIgnoreCase("Call Ready"))
-      {
-        unsigned long currentTime = millis();
-        if (lastCallReadyTime > 0)
+    if (line.length() > 0) {
+      if (isPrintableOrKnownPrefix(line)) {
+        printWithTime("tic: " + line); // Print the received line with time
+        // SMS state machine
+        if (smsState == SMS_WAIT_HEADER || smsState == SMS_WAIT_CONTENT)
         {
-          unsigned long interval = currentTime - lastCallReadyTime;
-          printWithTime("Interval since last 'Call Ready': " + String(interval) + " ms");
+          handleSmsLine(line);
         }
-        lastCallReadyTime = currentTime;
-      }
 
-      // Check for new SMS notification
-      if (line.startsWith("+CMTI:"))
-      {
-        processSmsNotification(line); // Call the dedicated function
-      }
+        // Handle "NO CARRIER" message
+        if (line.equalsIgnoreCase("NO CARRIER"))
+        {
+          printWithTime("Call disconnected. Stopping DTMF transmission.");
+          return; // Exit early to stop further processing
+        }
 
-      // Check for incoming call notification
-      if (line.startsWith("RING"))
-      {
-        processIncomingCall(line); // Call the dedicated function
-      }
+        // Check for "Call Ready" message
+        if (line.equalsIgnoreCase("Call Ready"))
+        {
+          unsigned long currentTime = millis();
+          if (lastCallReadyTime > 0)
+          {
+            unsigned long interval = currentTime - lastCallReadyTime;
+            printWithTime("Interval since last 'Call Ready': " + String(interval) + " ms");
+          }
+          lastCallReadyTime = currentTime;
+        }
 
-      // Handle network registration status
-      if (line.startsWith("+CREG:"))
-      {
-        int status = line.charAt(line.lastIndexOf(',') + 1) - '0';
-        if (status == 1 || status == 5)
+        // Check for new SMS notification
+        if (line.startsWith("+CMTI:"))
         {
-          printWithTime("SIM800L is registered on the network.");
+          processSmsNotification(line); // Call the dedicated function
         }
-        else if (status == 2)
+
+        // Check for incoming call notification
+        if (line.startsWith("RING"))
         {
-          printWithTime("SIM800L is searching for a network...");
+          processIncomingCall(line); // Call the dedicated function
         }
-        else
+
+        // Handle network registration status
+        if (line.startsWith("+CREG:"))
         {
-          printWithTime("SIM800L is not registered on the network.");
+          int status = line.charAt(line.lastIndexOf(',') + 1) - '0';
+          if (status == 1 || status == 5)
+          {
+            printWithTime("SIM800L is registered on the network.");
+          }
+          else if (status == 2)
+          {
+            printWithTime("SIM800L is searching for a network...");
+          }
+          else
+          {
+            printWithTime("SIM800L is not registered on the network.");
+          }
         }
+      } else {
+        printWithTime("RAW: " + line); // Mark and print garbage/unusual lines
       }
     }
   }
