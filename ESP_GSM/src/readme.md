@@ -55,11 +55,11 @@ Here is a list of commonly used AT commands for the SIM800L module:
 | `AT+FSLS="<path>"`    | List files in the specified directory.                                      |
 | `AT+DTMF=<digit>`     | Send a DTMF tone during a call.                                             |
 | `AT+CFUN=1,1`         | Restart the module.                                                         |
+| `ATD<phone_number>;`  | Place a voice call to the specified phone number.                           |
+| `ATH`                 | Hang up (terminate) the current call.                                       |
+| `ATA`                 | Answer an incoming call.                                                    |
 
-### Example for Restarting the Module
-
-1. **Restart the Module**: `AT+CFUN=1,1`  
-   The module will restart, and you should see a response like `OK` followed by the module rebooting.
+When a call is incoming, the module will output `RING` and the caller's number (if available). Use `ATA` to answer, or `ATH` to reject/hang up.
 
 ## Network AT Commands
 
