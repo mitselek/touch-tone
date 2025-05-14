@@ -156,42 +156,35 @@ void setup()
 
   SIM800_SERIAL.begin(57600, SERIAL_8N1, RXD2, TXD2);
   printWithTime("SIM800L Serial Initialized at 57600 baud on pins RX: " + String(RXD2) + ", TX: " + String(TXD2));
-  delay(2000);
-  printWithTime("Waiting for SIM800L to settle (5 seconds)...");
-  delay(5000);
-  printWithTime("Sending initial AT commands to SIM800L...");
+  delay(500); // Short initial delay for hardware settle
 
-  // Basic AT command to check communication
-  if (sendCommandAndWait("AT", "OK", 7000))
-  { // Explicit 7s timeout, longer to accommodate potential slow init
-    printWithTime("SIM800L is responsive to AT command.");
-  }
-  else
-  {
-    printWithTime("SIM800L did not respond as expected to AT command. Dumping raw serial from SIM800L for 5 seconds...");
-    unsigned long debugStartTime = millis();
-    bool receivedData = false;
-    while (millis() - debugStartTime < 5000)
-    { // Listen for 5 seconds
-      if (SIM800_SERIAL.available())
-      {
-        Serial.write(SIM800_SERIAL.read()); // Print raw data to main serial
-        receivedData = true;
+  // Try to communicate with SIM800L as soon as possible
+  printWithTime("Checking if SIM800L is already responsive...");
+  if (sendCommandAndWait("AT", "OK", 2000)) {
+    printWithTime("SIM800L is responsive to AT command (no long wait needed).");
+  } else {
+    printWithTime("SIM800L not responsive yet, waiting 2 seconds and retrying...");
+    delay(2000);
+    if (sendCommandAndWait("AT", "OK", 3000)) {
+      printWithTime("SIM800L is now responsive after short wait.");
+    } else {
+      printWithTime("SIM800L did not respond as expected to AT command. Dumping raw serial from SIM800L for 5 seconds...");
+      unsigned long debugStartTime = millis();
+      bool receivedData = false;
+      while (millis() - debugStartTime < 5000) {
+        if (SIM800_SERIAL.available()) {
+          Serial.write(SIM800_SERIAL.read());
+          receivedData = true;
+        }
+        yield();
       }
-      yield(); // Allow other ESP32 tasks to run
-    }
-    if (receivedData)
-    {
-      Serial.println("\\nRaw data dump complete.");
-    }
-    else
-    {
-      Serial.println("\\nNo raw data received from SIM800L during dump.");
-    }
-    printWithTime("Halting due to SIM800L communication failure at initial AT command.");
-    while (1)
-    {
-      yield(); // Halt if basic communication fails, but keep yielding
+      if (receivedData) {
+        Serial.println("\nRaw data dump complete.");
+      } else {
+        Serial.println("\nNo raw data received from SIM800L during dump.");
+      }
+      printWithTime("Halting due to SIM800L communication failure at initial AT command.");
+      while (1) { yield(); }
     }
   }
 
