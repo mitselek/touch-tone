@@ -1,4 +1,5 @@
 #include <Arduino.h>
+// #include "sim800_baud_detect.h"
 
 // Define the Serial port pins for SIM800L
 #define RXD2 16
@@ -52,36 +53,118 @@ void sendCommandToSIM800L(const String& command) {
 bool sendCommandAndWait(const String& command, const String& expectedResponse, unsigned long timeout = 5000) {
     sendCommandToSIM800L(command); // Send the command
     unsigned long startTime = millis();
+    String currentLine = "";
+    char receivedChar;
+    // printWithTime("Waiting for response to: " + command + " (timeout: " + String(timeout) + "ms)"); // Optional: uncomment for more verbose logging
+
     while (millis() - startTime < timeout) {
-        if (SIM800_SERIAL.available()) {
-            String response = SIM800_SERIAL.readStringUntil('\n');
-            response.trim(); // Remove whitespace
-            if (response.indexOf(expectedResponse) != -1) {
-                printWithTime("SIM800L: + " + response);
-                return true; // Expected response received
-            } else {
-                printWithTime("SIM800L: - " + response); // Print unexpected response
+        while (SIM800_SERIAL.available()) {
+            receivedChar = SIM800_SERIAL.read();
+            // Serial.write(receivedChar); // Optional: Echo raw char to main serial for extreme debugging
+
+            if (receivedChar == '\n') {
+                currentLine.trim(); // Trim whitespace from the completed line
+                if (currentLine.length() > 0) {
+                    printWithTime("SIM800L Raw Line: " + currentLine);
+                    if (currentLine.indexOf(expectedResponse) != -1) {
+                        printWithTime("SIM800L: + Expected response found in: " + currentLine);
+                        return true; // Expected response received
+                    } else {
+                        // Only print if it's not an empty line or just "AT" echoed back if echo is on
+                        if (!currentLine.equalsIgnoreCase(command) && !currentLine.isEmpty()) {
+                           printWithTime("SIM800L: - Unexpected line: " + currentLine);
+                        }
+                    }
+                }
+                currentLine = ""; // Reset for the next line
+            } else if (receivedChar != '\r') { // Ignore carriage return, accumulate others
+                currentLine += receivedChar;
+            }
+        }
+        yield(); // Allow other tasks to run, important for ESP32
+    }
+
+    // Check if there's any partial line data at timeout (e.g. if SIM800L didn't send \n)
+    currentLine.trim();
+    if (currentLine.length() > 0) {
+        printWithTime("SIM800L Partial Line at Timeout: " + currentLine);
+        if (currentLine.indexOf(expectedResponse) != -1) {
+            printWithTime("SIM800L: + Expected response found in partial line: " + currentLine);
+            return true;
+        } else {
+            if (!currentLine.equalsIgnoreCase(command) && !currentLine.isEmpty()) {
+                printWithTime("SIM800L: - Unexpected partial line at timeout: " + currentLine);
             }
         }
     }
-    printWithTime("Timeout waiting for response to: " + command);
+    
+    printWithTime("Timeout waiting for '" + expectedResponse + "' in response to: " + command);
     return false; // Timeout or unexpected response
 }
 
-void setup() {
-    // Start Serial monitor communication
-    Serial.begin(115200);
-    while (!Serial) {
-        ; // Wait for serial port to connect. Needed for native USB port only
+// Try a list of baud rates (fastest to slowest) and return the working one, or -1 if none work
+int autoDetectSIM800Baud(const int* baudRates, int numRates, int rxPin, int txPin) {
+    for (int i = 0; i < numRates; ++i) {
+        int baud = baudRates[i];
+        SIM800_SERIAL.end();
+        delay(100);
+        SIM800_SERIAL.begin(baud, SERIAL_8N1, rxPin, txPin);
+        printWithTime("Testing SIM800L at baud: " + String(baud));
+        delay(3000); // Give SIM800L a moment to adjust
+        if (sendCommandAndWait("AT", "OK", 2000)) {
+            printWithTime("SUCCESS: SIM800L responded at baud " + String(baud));
+            return baud;
+        } else {
+            printWithTime("No response at baud " + String(baud));
+        }
     }
-    // Give the modem some time to power up and register
-    delay(3000);
+    return -1;
+}
 
-    printWithTime("ESP32 Serial Monitor Started");
+void setup() {
+    Serial.begin(115200);
+    while (!Serial) { ; }
+    printWithTime("Serial Monitor Initialized at 115200 baud.");
 
-    // Start Hardware Serial communication with SIM800L
-    SIM800_SERIAL.begin(9600, SERIAL_8N1, RXD2, TXD2);
-    printWithTime("Initializing SIM800L...");
+    SIM800_SERIAL.begin(57600, SERIAL_8N1, RXD2, TXD2);
+    printWithTime("SIM800L Serial Initialized at 57600 baud on pins RX: " + String(RXD2) + ", TX: " + String(TXD2));
+    delay(2000);
+    printWithTime("Waiting for SIM800L to settle (5 seconds)...");
+    delay(5000);
+    printWithTime("Sending initial AT commands to SIM800L...");
+
+    // Basic AT command to check communication
+    if (sendCommandAndWait("AT", "OK", 7000)) { // Explicit 7s timeout, longer to accommodate potential slow init
+        printWithTime("SIM800L is responsive to AT command.");
+    } else {
+        printWithTime("SIM800L did not respond as expected to AT command. Dumping raw serial from SIM800L for 5 seconds...");
+        unsigned long debugStartTime = millis();
+        bool receivedData = false;
+        while(millis() - debugStartTime < 5000) { // Listen for 5 seconds
+            if (SIM800_SERIAL.available()) {
+                Serial.write(SIM800_SERIAL.read()); // Print raw data to main serial
+                receivedData = true;
+            }
+            yield(); // Allow other ESP32 tasks to run
+        }
+        if (receivedData) {
+            Serial.println("\\nRaw data dump complete.");
+        } else {
+            Serial.println("\\nNo raw data received from SIM800L during dump.");
+        }
+        printWithTime("Halting due to SIM800L communication failure at initial AT command.");
+        while(1) {
+            yield(); // Halt if basic communication fails, but keep yielding
+        }
+    }
+
+    // Disable command echo
+    if (sendCommandAndWait("ATE0", "OK", 2000)) { // Shorter timeout for ATE0
+        printWithTime("Command echo disabled (ATE0).");
+    } else {
+        printWithTime("Failed to disable command echo (ATE0). This might be okay if it's already off or module doesn't support ATE0 well. Continuing...");
+        // It's not critical to halt here, but responses might include the command itself.
+    }
 
     // Retry each command up to three times
     for (int attempt = 0; attempt < 3; ++attempt) {
