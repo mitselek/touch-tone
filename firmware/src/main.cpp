@@ -9,14 +9,14 @@ Preferences preferences;
 #define TXD2 18
 
 // Define button pins (assuming pins 2-9 for 8 buttons)
-#define BUTTON_1 34
-#define BUTTON_2 35
-#define BUTTON_3 32
-#define BUTTON_4 33
-#define BUTTON_5 25
-#define BUTTON_6 26
-#define BUTTON_7 27
-#define BUTTON_8 14
+#define BUTTON_1 32
+#define BUTTON_2 33
+#define BUTTON_3 25
+#define BUTTON_4 26
+#define BUTTON_5 27
+#define BUTTON_6 14
+#define BUTTON_7 12
+#define BUTTON_8 13
 
 // Define the Serial port instance for SIM800L
 #define SIM800_SERIAL Serial2
@@ -280,36 +280,22 @@ void updateSpeedDialNumber(int index, const String &newNumber)
 // Function to check button presses
 void checkButtons()
 {
-  static unsigned long lastDebugTime = 0;
-  static int debugCounter = 0;
   static bool buttonPressed[8] = {false}; // Track if button press has been processed
   
   for (int i = 0; i < 8; i++) {
     bool buttonState = digitalRead(buttonPins[i]);
     
-    // Debug: Print button 3 state every 5 seconds
-    if (i == 2 && millis() - lastDebugTime > 5000) { // Button 3 (index 2)
-      printWithTime("DEBUG: Button 3 (pin 32) state: " + String(buttonState ? "HIGH" : "LOW"));
-      debugCounter++;
-      if (debugCounter >= 10) { // Stop debug after 10 readings
-        debugCounter = 1000; // Large number to stop
-      }
-      lastDebugTime = millis();
-    }
-    
     // Check if button state changed
     if (buttonState != lastButtonState[i]) {
       lastDebounceTime[i] = millis();
       buttonPressed[i] = false; // Reset the pressed flag when state changes
-      printWithTime("Button " + String(i + 1) + " (pin " + String(buttonPins[i]) + ") state changed: " + 
-                   String(lastButtonState[i] ? "HIGH" : "LOW") + " → " + String(buttonState ? "HIGH" : "LOW"));
     }
     
     // If button is LOW (pressed) and has been stable for debounce period
     unsigned long timeSinceChange = millis() - lastDebounceTime[i];
     if (buttonState == LOW && timeSinceChange > debounceDelay && !buttonPressed[i]) {
       buttonPressed[i] = true; // Mark as processed to avoid repeat triggers
-      printWithTime("Button " + String(i + 1) + " pressed - debounce OK (" + String(timeSinceChange) + "ms)");
+      printWithTime("Button " + String(i + 1) + " pressed");
       
       if (incomingCall) {
         // Any button answers incoming call
@@ -569,7 +555,7 @@ void setup()
   for (int i = 0; i < 8; i++) {
     pinMode(buttonPins[i], INPUT_PULLUP);
   }
-  printWithTime("8 buttons initialized on pins 2-9");
+  printWithTime("8 buttons initialized on pins 34,35,32,33,25,26,27,14");
 
   // Load saved speed dial numbers from flash memory
   loadSpeedDialNumbers();
