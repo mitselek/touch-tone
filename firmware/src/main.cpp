@@ -4,13 +4,65 @@
 #define RXD2 19
 #define TXD2 18
 
+// Define button pins (assuming pins 2-9 for 8 buttons)
+#define BUTTON_1 34
+#define BUTTON_2 35
+#define BUTTON_3 32
+#define BUTTON_4 33
+#define BUTTON_5 25
+#define BUTTON_6 26
+#define BUTTON_7 27
+#define BUTTON_8 14
+
 // Define the Serial port instance for SIM800L
 #define SIM800_SERIAL Serial2
+
+// Speed dial numbers array (8 slots)
+String speedDialNumbers[8] = {
+  "+1234567890",  // Button 1
+  "+1234567891",  // Button 2  
+  "+1234567892",  // Button 3
+  "+1234567893",  // Button 4
+  "+1234567894",  // Button 5
+  "+1234567895",  // Button 6
+  "+1234567896",  // Button 7
+  "+1234567897"   // Button 8
+};
+
+// Button pins array for easy iteration
+int buttonPins[8] = {BUTTON_1, BUTTON_2, BUTTON_3, BUTTON_4, BUTTON_5, BUTTON_6, BUTTON_7, BUTTON_8};
+bool lastButtonState[8] = {HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH}; // Assuming pull-up
+unsigned long lastDebounceTime[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+const unsigned long debounceDelay = 50;
+
+// Call state
+bool incomingCall = false;
+bool inCall = false;
+
+// SMS state machine
+enum SmsState {
+  SMS_IDLE,
+  SMS_WAIT_HEADER,
+  SMS_WAIT_CONTENT
+};
+SmsState smsState = SMS_IDLE;
+String smsPhoneNumber = "";
+String smsMessageContent = "";
+int smsIndexToDelete = -1;
 
 // Function declarations
 void printWithTime(const String &message);
 bool sendCommandAndWait(const String &command, const String &expectedResponse, unsigned long timeout = 5000);
 void sendSms(const String &phoneNumber, const String &message);
+void makeCall(const String &phoneNumber);
+void answerCall();
+void hangupCall();
+void checkButtons();
+void processSmsNotification(String notificationLine);
+void handleSmsLine(const String &line);
+void processIncomingCall();
+void updateSpeedDialNumber(int index, const String &newNumber);
+void processSmsCommand(const String &command);
 
 // Helper function to prepend time to Serial output
 void printWithTime(const String &message)
@@ -160,6 +212,212 @@ void sendSms(const String &phoneNumber, const String &message)
   printWithTime("SMS sending timeout");
 }
 
+// Function to make a call
+void makeCall(const String &phoneNumber)
+{
+  if (phoneNumber.length() == 0 || phoneNumber == "+1234567890") {
+    printWithTime("Empty or default number - call cancelled");
+    return;
+  }
+  
+  printWithTime("Making call to: " + phoneNumber);
+  
+  if (sendCommandAndWait("ATD" + phoneNumber + ";", "OK", 5000)) {
+    printWithTime("Call initiated successfully");
+    inCall = true;
+  } else {
+    printWithTime("Failed to initiate call");
+  }
+}
+
+// Function to answer incoming call
+void answerCall()
+{
+  printWithTime("Answering incoming call...");
+  if (sendCommandAndWait("ATA", "OK", 3000)) {
+    printWithTime("Call answered successfully");
+    incomingCall = false;
+    inCall = true;
+  } else {
+    printWithTime("Failed to answer call");
+  }
+}
+
+// Function to hang up call
+void hangupCall()
+{
+  printWithTime("Hanging up call...");
+  if (sendCommandAndWait("ATH", "OK", 3000)) {
+    printWithTime("Call ended successfully");
+    inCall = false;
+    incomingCall = false;
+  } else {
+    printWithTime("Failed to hang up call");
+  }
+}
+
+// Function to update speed dial number
+void updateSpeedDialNumber(int index, const String &newNumber)
+{
+  if (index >= 1 && index <= 8) {
+    speedDialNumbers[index - 1] = newNumber;
+    printWithTime("Speed dial " + String(index) + " updated to: " + newNumber);
+  } else {
+    printWithTime("Invalid speed dial index: " + String(index));
+  }
+}
+
+// Function to check button presses
+void checkButtons()
+{
+  for (int i = 0; i < 8; i++) {
+    bool buttonState = digitalRead(buttonPins[i]);
+    
+    // Check if button state changed
+    if (buttonState != lastButtonState[i]) {
+      lastDebounceTime[i] = millis();
+    }
+    
+    // If enough time has passed since last change, consider it a valid press
+    if ((millis() - lastDebounceTime[i]) > debounceDelay) {
+      if (buttonState == LOW && lastButtonState[i] == HIGH) { // Button pressed (assuming pull-up)
+        printWithTime("Button " + String(i + 1) + " pressed");
+        
+        if (incomingCall) {
+          // Any button answers incoming call
+          answerCall();
+        } else if (inCall) {
+          // Any button hangs up during call
+          hangupCall();
+        } else {
+          // Make call to speed dial number
+          printWithTime("Calling speed dial " + String(i + 1) + ": " + speedDialNumbers[i]);
+          makeCall(speedDialNumbers[i]);
+        }
+      }
+    }
+    
+    lastButtonState[i] = buttonState;
+  }
+}
+
+// Function to process SMS notifications
+void processSmsNotification(String notificationLine)
+{
+  printWithTime("*** New SMS Notification Received! ***");
+  // Example: +CMTI: "SM",3
+  int commaIndex = notificationLine.lastIndexOf(',');
+  if (commaIndex != -1) {
+    String idxStr = notificationLine.substring(commaIndex + 1);
+    idxStr.trim();
+    int idx = idxStr.toInt();
+    if (idx > 0) {
+      smsPhoneNumber = "";
+      smsMessageContent = "";
+      smsIndexToDelete = idx;
+      smsState = SMS_WAIT_HEADER;
+      printWithTime("Reading SMS at index: " + String(idx));
+      sendCommandAndWait("AT+CMGR=" + String(idx), "+CMGR:", 5000);
+    }
+  }
+}
+
+// Function to handle SMS content processing
+void handleSmsLine(const String &line)
+{
+  switch (smsState) {
+    case SMS_WAIT_HEADER:
+      if (line.startsWith("+CMGR:")) {
+        // Format: +CMGR: "REC UNREAD","+37256560978","","25/04/23,02:00:30+12"
+        int firstQuote = line.indexOf("\",\"") + 3;
+        int secondQuote = line.indexOf("\"", firstQuote);
+        if (firstQuote > 1 && secondQuote > firstQuote) {
+          smsPhoneNumber = line.substring(firstQuote, secondQuote);
+          printWithTime("SMS from: " + smsPhoneNumber);
+          smsState = SMS_WAIT_CONTENT;
+        }
+      }
+      break;
+      
+    case SMS_WAIT_CONTENT:
+      if (line.equals("OK")) {
+        if (smsPhoneNumber.length() > 0 && smsMessageContent.length() > 0) {
+          // Process SMS command
+          processSmsCommand(smsMessageContent);
+          
+          // Delete original SMS
+          if (smsIndexToDelete > 0) {
+            printWithTime("Deleting SMS at index: " + String(smsIndexToDelete));
+            sendCommandAndWait("AT+CMGD=" + String(smsIndexToDelete), "OK", 3000);
+          }
+        }
+        // Reset state
+        smsState = SMS_IDLE;
+        smsPhoneNumber = "";
+        smsMessageContent = "";
+        smsIndexToDelete = -1;
+      } else if (smsMessageContent.isEmpty()) {
+        smsMessageContent = line;
+        printWithTime("SMS content: " + smsMessageContent);
+      }
+      break;
+      
+    default:
+      break;
+  }
+}
+
+// Function to process SMS commands for speed dial configuration
+void processSmsCommand(const String &command)
+{
+  printWithTime("Processing SMS command: " + command);
+  
+  // Expected format: "SET 1 +1234567890" (set speed dial 1 to +1234567890)
+  if (command.startsWith("SET ")) {
+    int spaceIndex = command.indexOf(' ', 4);
+    if (spaceIndex != -1) {
+      String indexStr = command.substring(4, spaceIndex);
+      String newNumber = command.substring(spaceIndex + 1);
+      newNumber.trim();
+      
+      int index = indexStr.toInt();
+      if (index >= 1 && index <= 8 && newNumber.length() > 0) {
+        updateSpeedDialNumber(index, newNumber);
+        
+        // Send confirmation SMS (when you have credit)
+        String confirmMsg = "Speed dial " + String(index) + " set to " + newNumber;
+        printWithTime("Would send confirmation: " + confirmMsg);
+        // sendSms(smsPhoneNumber, confirmMsg); // Uncomment when you have SMS credit
+      } else {
+        printWithTime("Invalid SET command format");
+      }
+    }
+  } else if (command.equals("LIST")) {
+    // List all speed dial numbers
+    printWithTime("Current speed dial numbers:");
+    for (int i = 0; i < 8; i++) {
+      printWithTime(String(i + 1) + ": " + speedDialNumbers[i]);
+    }
+    
+    // Send list via SMS (when you have credit)
+    String listMsg = "Speed dials:\n";
+    for (int i = 0; i < 8; i++) {
+      listMsg += String(i + 1) + ": " + speedDialNumbers[i] + "\n";
+    }
+    printWithTime("Would send list: " + listMsg);
+    // sendSms(smsPhoneNumber, listMsg); // Uncomment when you have SMS credit
+  } else {
+    printWithTime("Unknown SMS command. Use 'SET n +number' or 'LIST'");
+  }
+}
+
+// Function to handle incoming call notifications
+void processIncomingCall()
+{
+  printWithTime("*** INCOMING CALL! Press any button to answer ***");
+  incomingCall = true;
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -168,6 +426,12 @@ void setup()
     ;
   }
   printWithTime("Serial Monitor Initialized");
+
+  // Initialize button pins as inputs with pull-up resistors
+  for (int i = 0; i < 8; i++) {
+    pinMode(buttonPins[i], INPUT_PULLUP);
+  }
+  printWithTime("8 buttons initialized on pins 2-9");
 
   // Initialize SIM800L Serial
   SIM800_SERIAL.begin(57600, SERIAL_8N1, RXD2, TXD2);
@@ -251,13 +515,23 @@ void setup()
   sendCommandAndWait("AT+CSQ", "+CSQ:", 3000);
 
   printWithTime("SIM800L initialized successfully!");
-  printWithTime("Type 'SMS:+1234567890:Hello World' to send an SMS");
-  printWithTime("Format: SMS:<phone_number>:<message>");
+  printWithTime("=== SPEED DIAL PHONE READY ===");
+  printWithTime("- Press buttons 1-8 to call speed dial numbers");
+  printWithTime("- Press any button to answer incoming calls");
+  printWithTime("- Send SMS 'SET n +number' to change speed dial n");
+  printWithTime("- Send SMS 'LIST' to see all speed dial numbers");
+  printWithTime("Current speed dial numbers:");
+  for (int i = 0; i < 8; i++) {
+    printWithTime("  " + String(i + 1) + ": " + speedDialNumbers[i]);
+  }
   printWithTime("--------------------------------------------------");
 }
 
 void loop()
 {
+  // Check button presses
+  checkButtons();
+  
   // Handle SIM800L responses
   if (SIM800_SERIAL.available())
   {
@@ -266,10 +540,32 @@ void loop()
     if (line.length() > 0)
     {
       printWithTime("SIM800L: " + line);
+      
+      // Handle SMS state machine
+      if (smsState == SMS_WAIT_HEADER || smsState == SMS_WAIT_CONTENT) {
+        handleSmsLine(line);
+      }
+      
+      // Check for new SMS notification
+      if (line.startsWith("+CMTI:")) {
+        processSmsNotification(line);
+      }
+      
+      // Check for incoming call
+      if (line.startsWith("RING")) {
+        processIncomingCall();
+      }
+      
+      // Check for call ended
+      if (line.equalsIgnoreCase("NO CARRIER")) {
+        printWithTime("Call disconnected");
+        inCall = false;
+        incomingCall = false;
+      }
     }
   }
 
-  // Handle Serial Monitor input
+  // Handle Serial Monitor input (for manual AT commands and SMS testing)
   if (Serial.available())
   {
     String input = Serial.readStringUntil('\n');
@@ -287,7 +583,7 @@ void loop()
         
         if (phoneNumber.length() > 0 && content.length() > 0)
         {
-          sendSms(phoneNumber, content);
+          // sendSms(phoneNumber, content);
         }
         else
         {
@@ -298,6 +594,23 @@ void loop()
       {
         printWithTime("Invalid SMS format. Use: SMS:<phone>:<message>");
       }
+    }
+    else if (input.startsWith("CALL:"))
+    {
+      // Manual call command: CALL:+1234567890
+      String phoneNumber = input.substring(5);
+      phoneNumber.trim();
+      if (phoneNumber.length() > 0) {
+        makeCall(phoneNumber);
+      }
+    }
+    else if (input.equalsIgnoreCase("ANSWER"))
+    {
+      answerCall();
+    }
+    else if (input.equalsIgnoreCase("HANGUP"))
+    {
+      hangupCall();
     }
     else
     {
