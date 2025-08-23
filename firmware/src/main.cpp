@@ -1,4 +1,8 @@
 #include <Arduino.h>
+#include <Preferences.h>
+
+// Preferences object for persistent storage
+Preferences preferences;
 
 // Define the Serial port pins for SIM800L
 #define RXD2 19
@@ -17,17 +21,8 @@
 // Define the Serial port instance for SIM800L
 #define SIM800_SERIAL Serial2
 
-// Speed dial numbers array (8 slots)
-String speedDialNumbers[8] = {
-  "+1234567890",  // Button 1
-  "+1234567891",  // Button 2  
-  "+1234567892",  // Button 3
-  "+1234567893",  // Button 4
-  "+1234567894",  // Button 5
-  "+1234567895",  // Button 6
-  "+1234567896",  // Button 7
-  "+1234567897"   // Button 8
-};
+// Speed dial numbers array (8 slots) - will be loaded from persistent storage
+String speedDialNumbers[8];
 
 // Button pins array for easy iteration
 int buttonPins[8] = {BUTTON_1, BUTTON_2, BUTTON_3, BUTTON_4, BUTTON_5, BUTTON_6, BUTTON_7, BUTTON_8};
@@ -63,6 +58,9 @@ void handleSmsLine(const String &line);
 void processIncomingCall();
 void updateSpeedDialNumber(int index, const String &newNumber);
 void processSmsCommand(const String &command);
+void loadSpeedDialNumbers();
+void saveSpeedDialNumber(int index, const String &number);
+void initializeDefaultNumbers();
 
 // Helper function to prepend time to Serial output
 void printWithTime(const String &message)
@@ -262,6 +260,9 @@ void updateSpeedDialNumber(int index, const String &newNumber)
   if (index >= 1 && index <= 8) {
     speedDialNumbers[index - 1] = newNumber;
     printWithTime("Speed dial " + String(index) + " updated to: " + newNumber);
+    
+    // Save to persistent storage
+    saveSpeedDialNumber(index, newNumber);
   } else {
     printWithTime("Invalid speed dial index: " + String(index));
   }
@@ -452,6 +453,77 @@ void processSmsCommand(const String &command)
   }
 }
 
+// Function to load speed dial numbers from persistent storage
+void loadSpeedDialNumbers()
+{
+  preferences.begin("speeddial", false); // Open in read-only mode
+  
+  printWithTime("Loading speed dial numbers from persistent storage...");
+  bool hasStoredNumbers = false;
+  
+  for (int i = 0; i < 8; i++) {
+    String key = "dial" + String(i + 1);
+    String storedNumber = preferences.getString(key.c_str(), "");
+    
+    if (storedNumber.length() > 0) {
+      speedDialNumbers[i] = storedNumber;
+      hasStoredNumbers = true;
+      printWithTime("Loaded " + String(i + 1) + ": " + storedNumber);
+    } else {
+      speedDialNumbers[i] = ""; // Empty if not set
+    }
+  }
+  
+  preferences.end();
+  
+  // If no numbers were stored, initialize with defaults
+  if (!hasStoredNumbers) {
+    printWithTime("No stored numbers found, initializing defaults...");
+    initializeDefaultNumbers();
+  } else {
+    printWithTime("Speed dial numbers loaded from storage");
+  }
+}
+
+// Function to save a single speed dial number to persistent storage
+void saveSpeedDialNumber(int index, const String &number)
+{
+  if (index >= 1 && index <= 8) {
+    preferences.begin("speeddial", false); // Open in read-write mode
+    String key = "dial" + String(index);
+    preferences.putString(key.c_str(), number);
+    preferences.end();
+    printWithTime("Saved speed dial " + String(index) + " to persistent storage: " + number);
+  }
+}
+
+// Function to initialize default numbers and save them
+void initializeDefaultNumbers()
+{
+  String defaultNumbers[8] = {
+    "+1234567890",  // Button 1
+    "+1234567891",  // Button 2  
+    "+1234567892",  // Button 3
+    "+1234567893",  // Button 4
+    "+1234567894",  // Button 5
+    "+1234567895",  // Button 6
+    "+1234567896",  // Button 7
+    "+1234567897"   // Button 8
+  };
+  
+  preferences.begin("speeddial", false); // Open in read-write mode
+  
+  for (int i = 0; i < 8; i++) {
+    speedDialNumbers[i] = defaultNumbers[i];
+    String key = "dial" + String(i + 1);
+    preferences.putString(key.c_str(), defaultNumbers[i]);
+    printWithTime("Initialized default " + String(i + 1) + ": " + defaultNumbers[i]);
+  }
+  
+  preferences.end();
+  printWithTime("Default numbers saved to persistent storage");
+}
+
 // Function to handle incoming call notifications
 void processIncomingCall()
 {
@@ -468,11 +540,14 @@ void setup()
   }
   printWithTime("Serial Monitor Initialized");
 
+  // Initialize persistent storage and load speed dial numbers
+  loadSpeedDialNumbers();
+
   // Initialize button pins as inputs with pull-up resistors
   for (int i = 0; i < 8; i++) {
     pinMode(buttonPins[i], INPUT_PULLUP);
   }
-  printWithTime("8 buttons initialized on pins 2-9");
+  printWithTime("8 buttons initialized");
 
   // Initialize SIM800L Serial
   SIM800_SERIAL.begin(57600, SERIAL_8N1, RXD2, TXD2);
