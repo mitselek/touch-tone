@@ -317,7 +317,17 @@ void processSmsNotification(String notificationLine)
       smsIndexToDelete = idx;
       smsState = SMS_WAIT_HEADER;
       printWithTime("Reading SMS at index: " + String(idx));
-      sendCommandAndWait("AT+CMGR=" + String(idx), "+CMGR:", 5000);
+      
+      // Set SMS to text mode first
+      if (sendCommandAndWait("AT+CMGF=1", "OK", 3000)) {
+        printWithTime("SMS text mode set successfully");
+        // Send read command but DON'T wait for response - let main loop handle it
+        SIM800_SERIAL.println("AT+CMGR=" + String(idx));
+        printWithTime("Command to SIM800L: AT+CMGR=" + String(idx));
+        printWithTime("SMS state set to WAIT_HEADER - main loop will process response");
+      } else {
+        printWithTime("Failed to set SMS text mode");
+      }
     }
   }
 }
@@ -340,25 +350,40 @@ void handleSmsLine(const String &line)
       break;
       
     case SMS_WAIT_CONTENT:
+      printWithTime("SMS_WAIT_CONTENT: Processing line '" + line + "'");
       if (line.equals("OK")) {
+        printWithTime("Got OK - finishing SMS processing");
+        // Process the SMS if we have content
         if (smsPhoneNumber.length() > 0 && smsMessageContent.length() > 0) {
-          // Process SMS command
+          printWithTime("Processing SMS from " + smsPhoneNumber + ": '" + smsMessageContent + "'");
           processSmsCommand(smsMessageContent);
-          
-          // Delete original SMS
-          if (smsIndexToDelete > 0) {
-            printWithTime("Deleting SMS at index: " + String(smsIndexToDelete));
-            sendCommandAndWait("AT+CMGD=" + String(smsIndexToDelete), "OK", 3000);
+        } else {
+          printWithTime("ERROR: Missing data - Phone: '" + smsPhoneNumber + "', Content: '" + smsMessageContent + "'");
+        }
+        
+        // IMMEDIATELY delete the SMS to prevent buffer overflow
+        if (smsIndexToDelete > 0) {
+          printWithTime("Deleting SMS at index: " + String(smsIndexToDelete));
+          if (sendCommandAndWait("AT+CMGD=" + String(smsIndexToDelete), "OK", 3000)) {
+            printWithTime("SMS deleted successfully");
+          } else {
+            printWithTime("Failed to delete SMS");
           }
         }
+        
         // Reset state
+        printWithTime("Resetting SMS state machine");
         smsState = SMS_IDLE;
         smsPhoneNumber = "";
         smsMessageContent = "";
         smsIndexToDelete = -1;
-      } else if (smsMessageContent.isEmpty()) {
+      } else if (!line.isEmpty() && smsMessageContent.isEmpty()) {
+        // This should be the SMS content line
         smsMessageContent = line;
-        printWithTime("SMS content: " + smsMessageContent);
+        smsMessageContent.trim(); // Remove any whitespace
+        printWithTime("SMS content captured: '" + smsMessageContent + "'");
+      } else {
+        printWithTime("SMS_WAIT_CONTENT: Ignoring line '" + line + "'");
       }
       break;
       
@@ -370,31 +395,41 @@ void handleSmsLine(const String &line)
 // Function to process SMS commands for speed dial configuration
 void processSmsCommand(const String &command)
 {
-  printWithTime("Processing SMS command: " + command);
+  String cmd = command;
+  cmd.trim();
+  cmd.toUpperCase(); // Make it case-insensitive
+  
+  printWithTime("Processing SMS command: '" + cmd + "'");
   
   // Expected format: "SET 1 +1234567890" (set speed dial 1 to +1234567890)
-  if (command.startsWith("SET ")) {
-    int spaceIndex = command.indexOf(' ', 4);
-    if (spaceIndex != -1) {
-      String indexStr = command.substring(4, spaceIndex);
-      String newNumber = command.substring(spaceIndex + 1);
+  if (cmd.startsWith("SET ")) {
+    int firstSpace = cmd.indexOf(' ', 4);
+    int secondSpace = cmd.indexOf(' ', firstSpace + 1);
+    
+    if (firstSpace != -1 && secondSpace != -1) {
+      String indexStr = cmd.substring(4, firstSpace);
+      String newNumber = command.substring(secondSpace + 1); // Use original case for phone number
       newNumber.trim();
       
       int index = indexStr.toInt();
+      printWithTime("Parsed: index=" + String(index) + ", number='" + newNumber + "'");
+      
       if (index >= 1 && index <= 8 && newNumber.length() > 0) {
         updateSpeedDialNumber(index, newNumber);
         
         // Send confirmation SMS (when you have credit)
         String confirmMsg = "Speed dial " + String(index) + " set to " + newNumber;
-        printWithTime("Would send confirmation: " + confirmMsg);
+        printWithTime("SUCCESS: " + confirmMsg);
         // sendSms(smsPhoneNumber, confirmMsg); // Uncomment when you have SMS credit
       } else {
-        printWithTime("Invalid SET command format");
+        printWithTime("ERROR: Invalid index (" + String(index) + ") or empty number");
       }
+    } else {
+      printWithTime("ERROR: Invalid SET format. Use: SET n +number");
     }
-  } else if (command.equals("LIST")) {
+  } else if (cmd.equals("LIST")) {
     // List all speed dial numbers
-    printWithTime("Current speed dial numbers:");
+    printWithTime("=== CURRENT SPEED DIAL NUMBERS ===");
     for (int i = 0; i < 8; i++) {
       printWithTime(String(i + 1) + ": " + speedDialNumbers[i]);
     }
@@ -404,10 +439,10 @@ void processSmsCommand(const String &command)
     for (int i = 0; i < 8; i++) {
       listMsg += String(i + 1) + ": " + speedDialNumbers[i] + "\n";
     }
-    printWithTime("Would send list: " + listMsg);
+    printWithTime("Would send list via SMS (no credit)");
     // sendSms(smsPhoneNumber, listMsg); // Uncomment when you have SMS credit
   } else {
-    printWithTime("Unknown SMS command. Use 'SET n +number' or 'LIST'");
+    printWithTime("ERROR: Unknown command '" + cmd + "'. Use 'SET n +number' or 'LIST'");
   }
 }
 
@@ -513,6 +548,20 @@ void setup()
   
   // Check signal quality
   sendCommandAndWait("AT+CSQ", "+CSQ:", 3000);
+
+  // Set SMS to text mode for receiving
+  if (sendCommandAndWait("AT+CMGF=1", "OK", 3000)) {
+    printWithTime("SMS text mode enabled");
+  } else {
+    printWithTime("Failed to enable SMS text mode");
+  }
+
+  // Enable SMS notifications
+  if (sendCommandAndWait("AT+CNMI=2,1,0,0,0", "OK", 3000)) {
+    printWithTime("SMS notifications enabled");
+  } else {
+    printWithTime("Failed to enable SMS notifications");
+  }
 
   printWithTime("SIM800L initialized successfully!");
   printWithTime("=== SPEED DIAL PHONE READY ===");
