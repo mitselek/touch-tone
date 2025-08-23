@@ -403,16 +403,22 @@ void processSmsCommand(const String &command)
   
   // Expected format: "SET 1 +1234567890" (set speed dial 1 to +1234567890)
   if (cmd.startsWith("SET ")) {
-    int firstSpace = cmd.indexOf(' ', 4);
+    // Find spaces to parse: "SET 3 +37255639121"
+    //                            ^   ^
+    //                            |   second space
+    //                            first space
+    int firstSpace = 3; // Space after "SET"
     int secondSpace = cmd.indexOf(' ', firstSpace + 1);
     
-    if (firstSpace != -1 && secondSpace != -1) {
-      String indexStr = cmd.substring(4, firstSpace);
-      String newNumber = command.substring(secondSpace + 1); // Use original case for phone number
+    printWithTime("Parsing: firstSpace=" + String(firstSpace) + ", secondSpace=" + String(secondSpace));
+    
+    if (secondSpace != -1) {
+      String indexStr = cmd.substring(firstSpace + 1, secondSpace); // Between first and second space
+      String newNumber = command.substring(secondSpace + 1); // After second space (use original case)
       newNumber.trim();
       
       int index = indexStr.toInt();
-      printWithTime("Parsed: index=" + String(index) + ", number='" + newNumber + "'");
+      printWithTime("Parsed: indexStr='" + indexStr + "' (" + String(index) + "), number='" + newNumber + "'");
       
       if (index >= 1 && index <= 8 && newNumber.length() > 0) {
         updateSpeedDialNumber(index, newNumber);
@@ -425,7 +431,7 @@ void processSmsCommand(const String &command)
         printWithTime("ERROR: Invalid index (" + String(index) + ") or empty number");
       }
     } else {
-      printWithTime("ERROR: Invalid SET format. Use: SET n +number");
+      printWithTime("ERROR: Could not find second space in SET command");
     }
   } else if (cmd.equals("LIST")) {
     // List all speed dial numbers
