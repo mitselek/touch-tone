@@ -280,30 +280,47 @@ void updateSpeedDialNumber(int index, const String &newNumber)
 // Function to check button presses
 void checkButtons()
 {
+  static unsigned long lastDebugTime = 0;
+  static int debugCounter = 0;
+  static bool buttonPressed[8] = {false}; // Track if button press has been processed
+  
   for (int i = 0; i < 8; i++) {
     bool buttonState = digitalRead(buttonPins[i]);
+    
+    // Debug: Print button 3 state every 5 seconds
+    if (i == 2 && millis() - lastDebugTime > 5000) { // Button 3 (index 2)
+      printWithTime("DEBUG: Button 3 (pin 32) state: " + String(buttonState ? "HIGH" : "LOW"));
+      debugCounter++;
+      if (debugCounter >= 10) { // Stop debug after 10 readings
+        debugCounter = 1000; // Large number to stop
+      }
+      lastDebugTime = millis();
+    }
     
     // Check if button state changed
     if (buttonState != lastButtonState[i]) {
       lastDebounceTime[i] = millis();
+      buttonPressed[i] = false; // Reset the pressed flag when state changes
+      printWithTime("Button " + String(i + 1) + " (pin " + String(buttonPins[i]) + ") state changed: " + 
+                   String(lastButtonState[i] ? "HIGH" : "LOW") + " → " + String(buttonState ? "HIGH" : "LOW"));
     }
     
-    // If enough time has passed since last change, consider it a valid press
-    if ((millis() - lastDebounceTime[i]) > debounceDelay) {
-      if (buttonState == LOW && lastButtonState[i] == HIGH) { // Button pressed (assuming pull-up)
-        printWithTime("Button " + String(i + 1) + " pressed");
-        
-        if (incomingCall) {
-          // Any button answers incoming call
-          answerCall();
-        } else if (inCall) {
-          // Any button hangs up during call
-          hangupCall();
-        } else {
-          // Make call to speed dial number
-          printWithTime("Calling speed dial " + String(i + 1) + ": " + speedDialNumbers[i]);
-          makeCall(speedDialNumbers[i]);
-        }
+    // If button is LOW (pressed) and has been stable for debounce period
+    unsigned long timeSinceChange = millis() - lastDebounceTime[i];
+    if (buttonState == LOW && timeSinceChange > debounceDelay && !buttonPressed[i]) {
+      buttonPressed[i] = true; // Mark as processed to avoid repeat triggers
+      printWithTime("Button " + String(i + 1) + " pressed - debounce OK (" + String(timeSinceChange) + "ms)");
+      
+      if (incomingCall) {
+        // Any button answers incoming call
+        answerCall();
+      } else if (inCall) {
+        // Any button hangs up during call
+        hangupCall();
+      } else {
+        // Make call to speed dial number
+        printWithTime("Calling speed dial " + String(i + 1) + ": " + speedDialNumbers[i]);
+        makeCall(speedDialNumbers[i]);
       }
     }
     
