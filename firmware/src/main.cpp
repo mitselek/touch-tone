@@ -21,8 +21,17 @@ Preferences preferences;
 // Define the Serial port instance for SIM800L
 #define SIM800_SERIAL Serial2
 
-// Speed dial numbers array (8 slots) - will be loaded from persistent storage
-String speedDialNumbers[8];
+// Speed dial numbers array (8 slots)
+String speedDialNumbers[8] = {
+  "+37256560978",  // Button 1
+  "+",  // Button 2  
+  "+",  // Button 3
+  "+",  // Button 4
+  "+",  // Button 5
+  "+",  // Button 6
+  "+",  // Button 7
+  "+"   // Button 8
+};
 
 // Button pins array for easy iteration
 int buttonPins[8] = {BUTTON_1, BUTTON_2, BUTTON_3, BUTTON_4, BUTTON_5, BUTTON_6, BUTTON_7, BUTTON_8};
@@ -58,9 +67,8 @@ void handleSmsLine(const String &line);
 void processIncomingCall();
 void updateSpeedDialNumber(int index, const String &newNumber);
 void processSmsCommand(const String &command);
+void saveSpeedDialNumbers();
 void loadSpeedDialNumbers();
-void saveSpeedDialNumber(int index, const String &number);
-void initializeDefaultNumbers();
 
 // Helper function to prepend time to Serial output
 void printWithTime(const String &message)
@@ -258,11 +266,12 @@ void hangupCall()
 void updateSpeedDialNumber(int index, const String &newNumber)
 {
   if (index >= 1 && index <= 8) {
+    String oldNumber = speedDialNumbers[index - 1];
     speedDialNumbers[index - 1] = newNumber;
-    printWithTime("Speed dial " + String(index) + " updated to: " + newNumber);
+    printWithTime("Speed dial " + String(index) + " updated: " + oldNumber + " → " + newNumber);
     
-    // Save to persistent storage
-    saveSpeedDialNumber(index, newNumber);
+    // Save to flash memory immediately
+    saveSpeedDialNumbers();
   } else {
     printWithTime("Invalid speed dial index: " + String(index));
   }
@@ -448,80 +457,13 @@ void processSmsCommand(const String &command)
     }
     printWithTime("Would send list via SMS (no credit)");
     // sendSms(smsPhoneNumber, listMsg); // Uncomment when you have SMS credit
+  } else if (cmd.equals("SAVE")) {
+    // Manually save speed dial numbers
+    saveSpeedDialNumbers();
+    printWithTime("Manual save completed");
   } else {
-    printWithTime("ERROR: Unknown command '" + cmd + "'. Use 'SET n +number' or 'LIST'");
+    printWithTime("ERROR: Unknown command '" + cmd + "'. Use 'SET n +number', 'LIST', or 'SAVE'");
   }
-}
-
-// Function to load speed dial numbers from persistent storage
-void loadSpeedDialNumbers()
-{
-  preferences.begin("speeddial", false); // Open in read-only mode
-  
-  printWithTime("Loading speed dial numbers from persistent storage...");
-  bool hasStoredNumbers = false;
-  
-  for (int i = 0; i < 8; i++) {
-    String key = "dial" + String(i + 1);
-    String storedNumber = preferences.getString(key.c_str(), "");
-    
-    if (storedNumber.length() > 0) {
-      speedDialNumbers[i] = storedNumber;
-      hasStoredNumbers = true;
-      printWithTime("Loaded " + String(i + 1) + ": " + storedNumber);
-    } else {
-      speedDialNumbers[i] = ""; // Empty if not set
-    }
-  }
-  
-  preferences.end();
-  
-  // If no numbers were stored, initialize with defaults
-  if (!hasStoredNumbers) {
-    printWithTime("No stored numbers found, initializing defaults...");
-    initializeDefaultNumbers();
-  } else {
-    printWithTime("Speed dial numbers loaded from storage");
-  }
-}
-
-// Function to save a single speed dial number to persistent storage
-void saveSpeedDialNumber(int index, const String &number)
-{
-  if (index >= 1 && index <= 8) {
-    preferences.begin("speeddial", false); // Open in read-write mode
-    String key = "dial" + String(index);
-    preferences.putString(key.c_str(), number);
-    preferences.end();
-    printWithTime("Saved speed dial " + String(index) + " to persistent storage: " + number);
-  }
-}
-
-// Function to initialize default numbers and save them
-void initializeDefaultNumbers()
-{
-  String defaultNumbers[8] = {
-    "+1234567890",  // Button 1
-    "+1234567891",  // Button 2  
-    "+1234567892",  // Button 3
-    "+1234567893",  // Button 4
-    "+1234567894",  // Button 5
-    "+1234567895",  // Button 6
-    "+1234567896",  // Button 7
-    "+1234567897"   // Button 8
-  };
-  
-  preferences.begin("speeddial", false); // Open in read-write mode
-  
-  for (int i = 0; i < 8; i++) {
-    speedDialNumbers[i] = defaultNumbers[i];
-    String key = "dial" + String(i + 1);
-    preferences.putString(key.c_str(), defaultNumbers[i]);
-    printWithTime("Initialized default " + String(i + 1) + ": " + defaultNumbers[i]);
-  }
-  
-  preferences.end();
-  printWithTime("Default numbers saved to persistent storage");
 }
 
 // Function to handle incoming call notifications
@@ -529,6 +471,72 @@ void processIncomingCall()
 {
   printWithTime("*** INCOMING CALL! Press any button to answer ***");
   incomingCall = true;
+}
+
+// Function to save speed dial numbers to flash memory
+void saveSpeedDialNumbers()
+{
+  printWithTime("Saving speed dial numbers to flash memory...");
+  
+  // Open preferences with our namespace
+  if (preferences.begin("speeddial", false)) { // false = read-write mode
+    bool success = true;
+    
+    // Save each speed dial number with a unique key
+    for (int i = 0; i < 8; i++) {
+      String key = "dial" + String(i + 1); // dial1, dial2, etc.
+      if (preferences.putString(key.c_str(), speedDialNumbers[i]) == 0) {
+        printWithTime("Failed to save speed dial " + String(i + 1));
+        success = false;
+      }
+    }
+    
+    preferences.end(); // Always close preferences
+    
+    if (success) {
+      printWithTime("All speed dial numbers saved successfully");
+    } else {
+      printWithTime("Some speed dial numbers failed to save");
+    }
+  } else {
+    printWithTime("ERROR: Failed to open preferences for saving");
+  }
+}
+
+// Function to load speed dial numbers from flash memory
+void loadSpeedDialNumbers()
+{
+  printWithTime("Loading speed dial numbers from flash memory...");
+  
+  // Open preferences with our namespace
+  if (preferences.begin("speeddial", true)) { // true = read-only mode
+    bool foundSaved = false;
+    
+    // Load each speed dial number
+    for (int i = 0; i < 8; i++) {
+      String key = "dial" + String(i + 1); // dial1, dial2, etc.
+      String savedNumber = preferences.getString(key.c_str(), ""); // Empty string as default
+      
+      if (savedNumber.length() > 0) {
+        speedDialNumbers[i] = savedNumber;
+        printWithTime("Loaded speed dial " + String(i + 1) + ": " + savedNumber);
+        foundSaved = true;
+      } else {
+        // Keep default values for empty slots
+        printWithTime("Speed dial " + String(i + 1) + ": using default " + speedDialNumbers[i]);
+      }
+    }
+    
+    preferences.end(); // Always close preferences
+    
+    if (foundSaved) {
+      printWithTime("Speed dial numbers loaded from flash memory");
+    } else {
+      printWithTime("No saved speed dial numbers found, using defaults");
+    }
+  } else {
+    printWithTime("WARNING: Failed to open preferences for loading, using defaults");
+  }
 }
 
 void setup()
@@ -540,14 +548,14 @@ void setup()
   }
   printWithTime("Serial Monitor Initialized");
 
-  // Initialize persistent storage and load speed dial numbers
-  loadSpeedDialNumbers();
-
   // Initialize button pins as inputs with pull-up resistors
   for (int i = 0; i < 8; i++) {
     pinMode(buttonPins[i], INPUT_PULLUP);
   }
-  printWithTime("8 buttons initialized");
+  printWithTime("8 buttons initialized on pins 2-9");
+
+  // Load saved speed dial numbers from flash memory
+  loadSpeedDialNumbers();
 
   // Initialize SIM800L Serial
   SIM800_SERIAL.begin(57600, SERIAL_8N1, RXD2, TXD2);
@@ -650,6 +658,7 @@ void setup()
   printWithTime("- Press any button to answer incoming calls");
   printWithTime("- Send SMS 'SET n +number' to change speed dial n");
   printWithTime("- Send SMS 'LIST' to see all speed dial numbers");
+  printWithTime("- Send SMS 'SAVE' to manually save numbers to flash");
   printWithTime("Current speed dial numbers:");
   for (int i = 0; i < 8; i++) {
     printWithTime("  " + String(i + 1) + ": " + speedDialNumbers[i]);
