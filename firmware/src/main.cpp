@@ -33,6 +33,14 @@ String speedDialNumbers[8] = {
   "+"   // Button 8
 };
 
+// Whitelist of authorized numbers that can send SMS commands
+String authorizedNumbers[] = {
+  "+37256560978",  // Add your authorized numbers here
+  "+37255639121",   // Example: another authorized number
+  // Add more numbers as needed
+};
+const int numAuthorizedNumbers = sizeof(authorizedNumbers) / sizeof(authorizedNumbers[0]);
+
 // Button pins array for easy iteration
 int buttonPins[8] = {BUTTON_1, BUTTON_2, BUTTON_3, BUTTON_4, BUTTON_5, BUTTON_6, BUTTON_7, BUTTON_8};
 bool lastButtonState[8] = {HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH}; // Assuming pull-up
@@ -69,6 +77,7 @@ void updateSpeedDialNumber(int index, const String &newNumber);
 void processSmsCommand(const String &command);
 void saveSpeedDialNumbers();
 void loadSpeedDialNumbers();
+bool isAuthorizedNumber(const String &phoneNumber);
 
 // Helper function to prepend time to Serial output
 void printWithTime(const String &message)
@@ -369,7 +378,15 @@ void handleSmsLine(const String &line)
         // Process the SMS if we have content
         if (smsPhoneNumber.length() > 0 && smsMessageContent.length() > 0) {
           printWithTime("Processing SMS from " + smsPhoneNumber + ": '" + smsMessageContent + "'");
-          processSmsCommand(smsMessageContent);
+          
+          // Check if the sender is authorized
+          if (isAuthorizedNumber(smsPhoneNumber)) {
+            printWithTime("Number " + smsPhoneNumber + " is authorized - processing command");
+            processSmsCommand(smsMessageContent);
+          } else {
+            printWithTime("SECURITY: Unauthorized number " + smsPhoneNumber + " attempted to send command: '" + smsMessageContent + "'");
+            printWithTime("Command ignored for security reasons");
+          }
         } else {
           printWithTime("ERROR: Missing data - Phone: '" + smsPhoneNumber + "', Content: '" + smsMessageContent + "'");
         }
@@ -540,6 +557,17 @@ void loadSpeedDialNumbers()
   } else {
     printWithTime("WARNING: Failed to open preferences for loading, using defaults");
   }
+}
+
+// Function to check if a phone number is authorized to send commands
+bool isAuthorizedNumber(const String &phoneNumber)
+{
+  for (int i = 0; i < numAuthorizedNumbers; i++) {
+    if (phoneNumber.equals(authorizedNumbers[i])) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void setup()
