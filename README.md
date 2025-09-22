@@ -94,6 +94,7 @@ Phone Zero is a specialized communication device that eliminates traditional vis
 This project uses a private configuration file for sensitive information like phone numbers.
 
 To set up:
+
 1. Navigate to `ESP_GSM/include/`
 2. Edit `private_config.h` and replace the placeholder values with your actual information
 
