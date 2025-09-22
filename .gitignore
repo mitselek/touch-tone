@@ -70,3 +70,6 @@ ENV/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Private files
+private/

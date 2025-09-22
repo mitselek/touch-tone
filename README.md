@@ -1,5 +1,7 @@
 # Phone Zero
 
+**Project Codenames:** Phone Zero | Touch-tone | picfr.ee
+
 ## Executive Summary
 
 Phone Zero is a custom bedside telephone designed specifically for elderly blind users, prioritizing accessibility through tactile interfaces rather than visual displays. The device features large, distinctly textured buttons, button-based call answering functionality, and non-visual feedback mechanisms to create an intuitive user experience.
