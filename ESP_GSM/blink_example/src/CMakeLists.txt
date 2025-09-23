@@ -1,1 +1,0 @@
-idf_component_register(SRCS "Blink.cpp" "led_control.cpp" "modem_control.cpp" "settings.cpp")
