@@ -1,526 +1,702 @@
 #include <Arduino.h>
-// #include "sim800_baud_detect.h"
+#include <Preferences.h>
 
-// Define the Serial port pins for SIM800L
-#define RXD2 16
-#define TXD2 17
+/*
+ * Phone Zero - ESP32 Version
+ * Speed dial system for elderly/blind users
+ * Supports 8 tactile buttons for instant calling
+ * SMS programming and authorized number whitelist
+ * 
+ * Hardware:
+ * - ESP32-WROOM-32 (DoiT ESP32 DevKit v1)
+ * - SIM900A GSM module (independent 5V/2A power)
+ * - 8 tactile buttons with pull-up resistors
+ * 
+ * Connections:
+ * - SIM900A TX -> ESP32 D16 (GPIO16, UART2 RX)
+ * - SIM900A RX -> ESP32 D17 (GPIO17, UART2 TX)
+ * - SIM900A GND -> ESP32 GND (shared ground)
+ * - SIM900A VCC -> External 5V/2A supply
+ * - SIM900A D9  -> ESP32 GPIO27 (D9, for auto power-up)
+ * 
+ * Button Pins (with internal pull-ups):
+ * - Button 1: GPIO4  (avoid strapping pins when possible)
+ * - Button 2: GPIO18 
+ * - Button 3: GPIO19
+ * - Button 4: GPIO21 
+ * - Button 5: GPIO22
+ * - Button 6: GPIO23
+ * - Button 7: GPIO25
+ * - Button 8: GPIO26
+ * 
+ * IMPORTANT: SIM900A Hardware Mod Required for Auto Power-Up:
+ * - Solder R13 connection on SIM900A board (bridge the two tiny pins)
+ * - Connect SIM900A D9 pin to ESP32 GPIO27
+ * - Reference: https://randomnerdtutorials.com/sim900-gsm-gprs-shield-arduino/
+ */
 
-// Define the Serial port instance for SIM800L
-#define SIM800_SERIAL Serial2
+// SIM900A Hardware Serial (UART2)
+HardwareSerial sim900(2); // UART2
+#define SIM900_RX_PIN 16   // ESP32 D16 -> SIM900A TX
+#define SIM900_TX_PIN 17   // ESP32 D17 -> SIM900A RX
+#define SIM900_POWER_PIN 27 // ESP32 GPIO27 -> SIM900A D9 (auto power-up)
 
-// Function declaration
-void processSmsNotification(String notificationLine);
-void processIncomingCall(String notificationLine);
-void sendCommandToSIM800L(const String &command);
-void printWithTime(const String &message);
-bool sendCommandAndWait(const String &command, const String &expectedResponse, unsigned long timeout);
-void sendSms(const String &phoneNumber, const String &message);
-void processSmsContent(String line);
+// Button pins for ESP32 (avoiding strapping pins where possible)
+#define BUTTON_1 4
+#define BUTTON_2 18
+#define BUTTON_3 19
+#define BUTTON_4 21
+#define BUTTON_5 22
+#define BUTTON_6 23
+#define BUTTON_7 25
+#define BUTTON_8 26
 
-// Global variable to track the last "Call Ready" timestamp
-unsigned long lastCallReadyTime = 0;
-
-// Global variables for SMS processing
-String smsPhoneNumber = "";
-String smsMessageContent = "";
-bool waitingForSmsHeader = false;
-bool waitingForSmsContent = false;
-int currentSmsIndex = -1;
-
-// SMS state machine
-enum SmsState
-{
-  SMS_IDLE,
-  SMS_WAIT_HEADER,
-  SMS_WAIT_CONTENT
+// Speed dial numbers (stored in Flash memory via Preferences)
+String speedDialNumbers[8] = {
+  "+37256560978",  // Button 1 - default number
+  "+37255639121",  // Button 2 - default number
+  "",              // Button 3
+  "",              // Button 4
+  "",              // Button 5
+  "",              // Button 6
+  "",              // Button 7
+  ""               // Button 8
 };
-SmsState smsState = SMS_IDLE;
-int smsIndexToDelete = -1;
 
-// Helper function to prepend time to Serial output
-void printWithTime(const String &message)
-{
-  Serial.print("[");
-  Serial.print(millis());
-  Serial.print(" ms] ");
-  Serial.println(message);
-}
+// Authorized numbers for SMS programming
+String authorizedNumbers[] = {
+  "+37256560978",
+  "+37255639121"
+};
+const int numAuthorizedNumbers = 2;
 
-void sendCommandToSIM800L(const String &command)
-{
-  SIM800_SERIAL.println(command);                  // Send the command to SIM800L
-  printWithTime("Command to SIM800L: " + command); // Print the command with time
-}
+// Button handling
+int buttonPins[8] = {BUTTON_1, BUTTON_2, BUTTON_3, BUTTON_4, BUTTON_5, BUTTON_6, BUTTON_7, BUTTON_8};
+bool lastButtonState[8] = {HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH};
+unsigned long lastDebounceTime[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+const unsigned long debounceDelay = 50;
 
-// Helper function to send a command and wait for a response
-bool sendCommandAndWait(const String &command, const String &expectedResponse, unsigned long timeout = 5000)
-{
-  sendCommandToSIM800L(command); // Send the command
-  unsigned long startTime = millis();
-  String currentLine = "";
-  char receivedChar;
-  // printWithTime("Waiting for response to: " + command + " (timeout: " + String(timeout) + "ms)"); // Optional: uncomment for more verbose logging
+bool incomingCall = false;
+Preferences preferences;
 
-  while (millis() - startTime < timeout)
-  {
-    while (SIM800_SERIAL.available())
-    {
-      receivedChar = SIM800_SERIAL.read();
-      // Serial.write(receivedChar); // Optional: Echo raw char to main serial for extreme debugging
+// Function declarations
+void checkButtons();
+void handleButtonPress(int buttonNumber);
+void makeCall(String number);
+void handleIncomingCall();
+void handleIncomingSMS(String response);
+void processSMSCommand(String command, String sender);
+void sendSMS(String number, String message);
+void deleteAllSMS();
+void checkSMSMemory();
+void initSIM900();
+void readSIM900Response(String command);
+void loadSpeedDialNumbers();
+void saveSpeedDialNumbers();
+void printSpeedDialNumbers();
 
-      if (receivedChar == '\n')
-      {
-        currentLine.trim(); // Trim whitespace from the completed line
-        if (currentLine.length() > 0)
-        {
-          printWithTime("SIM800L Raw Line: " + currentLine);
-          if (currentLine.indexOf(expectedResponse) != -1)
-          {
-            printWithTime("SIM800L: + Expected response found in: " + currentLine);
-            return true; // Expected response received
-          }
-          else
-          {
-            // Only print if it's not an empty line or just "AT" echoed back if echo is on
-            if (!currentLine.equalsIgnoreCase(command) && !currentLine.isEmpty())
-            {
-              printWithTime("SIM800L: - Unexpected line: " + currentLine);
-            }
-          }
-        }
-        currentLine = ""; // Reset for the next line
-      }
-      else if (receivedChar != '\r')
-      { // Ignore carriage return, accumulate others
-        currentLine += receivedChar;
-      }
-    }
-    yield(); // Allow other tasks to run, important for ESP32
-  }
-
-  // Check if there's any partial line data at timeout (e.g. if SIM800L didn't send \n)
-  currentLine.trim();
-  if (currentLine.length() > 0)
-  {
-    printWithTime("SIM800L Partial Line at Timeout: " + currentLine);
-    if (currentLine.indexOf(expectedResponse) != -1)
-    {
-      printWithTime("SIM800L: + Expected response found in partial line: " + currentLine);
-      return true;
-    }
-    else
-    {
-      if (!currentLine.equalsIgnoreCase(command) && !currentLine.isEmpty())
-      {
-        printWithTime("SIM800L: - Unexpected partial line at timeout: " + currentLine);
-      }
-    }
-  }
-
-  printWithTime("Timeout waiting for '" + expectedResponse + "' in response to: " + command);
-  return false; // Timeout or unexpected response
-}
-
-// Try a list of baud rates (fastest to slowest) and return the working one, or -1 if none work
-int autoDetectSIM800Baud(const int *baudRates, int numRates, int rxPin, int txPin)
-{
-  for (int i = 0; i < numRates; ++i)
-  {
-    int baud = baudRates[i];
-    SIM800_SERIAL.end();
-    delay(100);
-    SIM800_SERIAL.begin(baud, SERIAL_8N1, rxPin, txPin);
-    printWithTime("Testing SIM800L at baud: " + String(baud));
-    delay(3000); // Give SIM800L a moment to adjust
-    if (sendCommandAndWait("AT", "OK", 2000))
-    {
-      printWithTime("SUCCESS: SIM800L responded at baud " + String(baud));
-      return baud;
-    }
-    else
-    {
-      printWithTime("No response at baud " + String(baud));
-    }
-  }
-  return -1;
-}
-
-void setup()
-{
+void setup() {
   Serial.begin(115200);
-  while (!Serial)
-  {
-    ;
+  delay(1000);
+  
+  Serial.println("Phone Zero - ESP32 Version Starting...");
+  Serial.println("=======================================");
+  Serial.println("Using Hardware UART2 (D16/D17) for SIM900A");
+  Serial.println("SIM900A powered independently with 5V/2A");
+  
+  // Set up SIM900A auto power-up pin
+  pinMode(SIM900_POWER_PIN, OUTPUT);
+  digitalWrite(SIM900_POWER_PIN, LOW); // Ensure it starts LOW
+  
+  // Automatically power on SIM900A (equivalent to pressing power button)
+  Serial.println("Auto-powering SIM900A...");
+  digitalWrite(SIM900_POWER_PIN, HIGH);
+  delay(1000);
+  digitalWrite(SIM900_POWER_PIN, LOW);
+  delay(2000); // Wait for SIM900A to start up
+  
+  // Initialize UART2 for SIM900A communication
+  sim900.begin(9600, SERIAL_8N1, SIM900_RX_PIN, SIM900_TX_PIN);
+  Serial.println("ESP32 UART2 initialized at 9600 baud");
+  
+  // Initialize button pins with internal pull-ups
+  for (int i = 0; i < 8; i++) {
+    pinMode(buttonPins[i], INPUT_PULLUP);
+    Serial.print("Button ");
+    Serial.print(i + 1);
+    Serial.print(" on GPIO");
+    Serial.println(buttonPins[i]);
   }
-  printWithTime("Serial Monitor Initialized at 115200 baud.");
+  
+  // Initialize Preferences for persistent storage
+  preferences.begin("phone-zero", false);
+  
+  // Load speed dial numbers from flash memory
+  loadSpeedDialNumbers();
+  
+  // Set default number for button 1 if not already programmed
+  if (speedDialNumbers[0].length() == 0) {
+    speedDialNumbers[0] = "+37256560978";
+    saveSpeedDialNumbers();
+    Serial.println("Set default number for Button 1: +37256560978");
+  }
+  
+  // Give SIM900A time to be ready
+  Serial.println("Waiting for SIM900A to boot...");
+  delay(3000);
 
-  SIM800_SERIAL.begin(57600, SERIAL_8N1, RXD2, TXD2);
-  printWithTime("SIM800L Serial Initialized at 57600 baud on pins RX: " + String(RXD2) + ", TX: " + String(TXD2));
-  delay(500); // Short initial delay for hardware settle
+  // Initialize SIM900A
+  initSIM900();
+  
+  Serial.println("\nPhone Zero ESP32 ready!");
+  Serial.println("Press buttons 1-8 for speed dial");
+  Serial.println("Send SMS to program numbers: 'SET 1 +1234567890'");
+  printSpeedDialNumbers();
+}
 
-  // Try to communicate with SIM800L as soon as possible
-  printWithTime("Checking if SIM800L is already responsive...");
-  if (sendCommandAndWait("AT", "OK", 2000)) {
-    printWithTime("SIM800L is responsive to AT command (no long wait needed).");
-  } else {
-    printWithTime("SIM800L not responsive yet, waiting 2 seconds and retrying...");
-    delay(2000);
-    if (sendCommandAndWait("AT", "OK", 3000)) {
-      printWithTime("SIM800L is now responsive after short wait.");
+void loop() {
+  static unsigned long lastSMSCheck = 0;
+  
+  // Check for button presses
+  checkButtons();
+  
+  // Check for incoming calls/SMS from SIM900A
+  if (sim900.available()) {
+    String response = sim900.readString();
+    Serial.print("SIM900A: ");
+    Serial.println(response);
+    
+    if (response.indexOf("RING") != -1) {
+      handleIncomingCall();
+    } else if (response.indexOf("+CMT:") != -1) {
+      handleIncomingSMS(response);
+    }
+  }
+  
+  // Check for serial input (AT commands from computer)
+  if (Serial.available()) {
+    String command = Serial.readString();
+    command.trim(); // Remove whitespace
+    
+    Serial.print("Received command: ");
+    Serial.println(command);
+    
+    // Handle special commands
+    if (command.equalsIgnoreCase("SMSCHECK")) {
+      checkSMSMemory();
+    } else if (command.equalsIgnoreCase("SMSCLEAR")) {
+      deleteAllSMS();
     } else {
-      printWithTime("SIM800L did not respond as expected to AT command. Dumping raw serial from SIM800L for 5 seconds...");
-      unsigned long debugStartTime = millis();
-      bool receivedData = false;
-      while (millis() - debugStartTime < 5000) {
-        if (SIM800_SERIAL.available()) {
-          Serial.write(SIM800_SERIAL.read());
-          receivedData = true;
-        }
-        yield();
-      }
-      if (receivedData) {
-        Serial.println("\nRaw data dump complete.");
-      } else {
-        Serial.println("\nNo raw data received from SIM800L during dump.");
-      }
-      printWithTime("Halting due to SIM800L communication failure at initial AT command.");
-      while (1) { yield(); }
-    }
-  }
-
-  // Disable command echo
-  if (sendCommandAndWait("ATE0", "OK", 2000))
-  { // Shorter timeout for ATE0
-    printWithTime("Command echo disabled (ATE0).");
-  }
-  else
-  {
-    printWithTime("Failed to disable command echo (ATE0). This might be okay if it's already off or module doesn't support ATE0 well. Continuing...");
-    // It's not critical to halt here, but responses might include the command itself.
-  }
-
-  // Retry each command up to three times
-  for (int attempt = 0; attempt < 3; ++attempt)
-  {
-    if (sendCommandAndWait("AT", "OK"))
-      break;
-    printWithTime("Retrying: Failed to communicate with SIM800L. Check connections.");
-    delay(1000);
-  }
-
-  for (int attempt = 0; attempt < 3; ++attempt)
-  {
-    if (sendCommandAndWait("ATE0", "OK"))
-      break;
-    printWithTime("Retrying: Failed to disable command echo.");
-    delay(1000);
-  }
-
-  for (int attempt = 0; attempt < 3; ++attempt)
-  {
-    if (sendCommandAndWait("AT+CMGF=1", "OK"))
-      break;
-    printWithTime("Retrying: Failed to set SMS mode to Text Mode.");
-    delay(1000);
-  }
-
-  for (int attempt = 0; ++attempt < 3; ++attempt)
-  {
-    if (sendCommandAndWait("AT+CNMI=2,1,0,0,0", "OK"))
-      break;
-    printWithTime("Retrying: Failed to configure SMS notifications.");
-    delay(1000);
-  }
-
-  for (int attempt = 0; ++attempt < 3; ++attempt)
-  {
-    if (sendCommandAndWait("AT+CSMINS?", "+CSMINS:"))
-      break;
-    printWithTime("Retrying: Failed to check SIM card presence.");
-    delay(1000);
-  }
-
-  for (int attempt = 0; ++attempt < 3; ++attempt)
-  {
-    if (sendCommandAndWait("AT+CPIN?", "+CPIN: READY"))
-      break;
-    printWithTime("Retrying: SIM card is not ready. Check if PIN is required.");
-    delay(1000);
-  }
-
-  for (int attempt = 0; ++attempt < 3; ++attempt)
-  {
-    if (sendCommandAndWait("AT+CREG?", "+CREG:"))
-      break;
-    printWithTime("Retrying: Failed to check network registration.");
-    delay(1000);
-  }
-
-  for (int attempt = 0; ++attempt < 3; ++attempt)
-  {
-    if (sendCommandAndWait("AT+CSQ", "+CSQ:"))
-      break;
-    printWithTime("Retrying: Failed to check signal quality.");
-    delay(1000);
-  }
-
-  // Check SIM800L firmware version and module information
-  printWithTime("Checking SIM800L firmware information...");
-  sendCommandAndWait("ATI", "OK"); // Get module information
-  delay(500);
-  sendCommandAndWait("AT+CGMR", "OK"); // Get firmware version
-  delay(500);
-  printWithTime("SIM800L Initialized successfully.");
-  printWithTime("Ready to forward data between Serial Monitor and SIM800L.");
-  printWithTime("Type AT commands here to send to SIM800L.");
-  printWithTime("--------------------------------------------------");
-}
-
-// New function to send SMS
-void sendSms(const String &phoneNumber, const String &message)
-{
-  printWithTime("Sending SMS to: " + phoneNumber);
-  printWithTime("Message: " + message);
-
-  sendCommandToSIM800L("AT+CMGS=\"" + phoneNumber + "\""); // Command to send SMS
-  delay(100);
-
-  // Send message content followed by Ctrl+Z (ASCII 26) to end message
-  SIM800_SERIAL.print(message);
-  SIM800_SERIAL.write(26);
-
-  printWithTime("SMS sent.");
-}
-
-// Function definition to process SMS notifications
-void processSmsNotification(String notificationLine)
-{
-  printWithTime("*** New SMS Notification Received! Attempting to read... ***");
-  // Example: +CMTI: "SM",3
-  int commaIndex = notificationLine.lastIndexOf(',');
-  if (commaIndex != -1)
-  {
-    String idxStr = notificationLine.substring(commaIndex + 1);
-    idxStr.trim();
-    int idx = idxStr.toInt();
-    if (idx > 0)
-    {
-      smsPhoneNumber = "";
-      smsMessageContent = "";
-      smsIndexToDelete = idx;
-      smsState = SMS_WAIT_HEADER;
-      printWithTime("Reading SMS at index: " + String(idx));
-      sendCommandToSIM800L("AT+CMGR=" + String(idx));
-    }
-    else
-    {
-      printWithTime("Could not parse SMS index.");
-    }
-  }
-  else
-  {
-    printWithTime("Could not find comma in +CMTI line to parse index.");
-  }
-}
-
-void handleSmsLine(const String &line)
-{
-  switch (smsState)
-  {
-  case SMS_WAIT_HEADER:
-    printWithTime("Waiting for SMS header... " + line);
-    if (line.startsWith("+CMGR:"))
-    {
-      // Format: +CMGR: "REC UNREAD","+37256560978","","25/04/23,02:00:30+12"
-      int firstQuote = line.indexOf("\",\"") + 3;
-      int secondQuote = line.indexOf("\"", firstQuote);
-      printWithTime("Quotes found at: " + String(firstQuote) + ", " + String(secondQuote));
-      if (firstQuote > 1 && secondQuote > firstQuote)
-      {
-        smsPhoneNumber = line.substring(firstQuote, secondQuote);
-        printWithTime("SMS from: " + smsPhoneNumber);
-        smsState = SMS_WAIT_CONTENT;
-      }
-    }
-    break;
-  case SMS_WAIT_CONTENT:
-    if (line.equals("OK"))
-    {
-      if (smsPhoneNumber.length() > 0 && smsMessageContent.length() > 0)
-      {
-        // Reply
-        String reply = smsMessageContent + " Sulle ka! :)";
-        printWithTime("Replying to: " + smsPhoneNumber + " with: " + reply);
-        sendCommandToSIM800L("AT+CMGS=\"" + smsPhoneNumber + "\"");
-        delay(300);
-        SIM800_SERIAL.print(reply);
-        SIM800_SERIAL.write(26); // Ctrl+Z
-        delay(5000);             // Wait for SMS to send
-
-        // Delete original SMS
-        if (smsIndexToDelete > 0)
-        {
-          printWithTime("Deleting SMS at index: " + String(smsIndexToDelete));
-          sendCommandToSIM800L("AT+CMGD=" + String(smsIndexToDelete));
-        }
-      }
-      // Reset state
-      smsState = SMS_IDLE;
-      smsPhoneNumber = "";
-      smsMessageContent = "";
-      smsIndexToDelete = -1;
-    }
-    else if (smsMessageContent.isEmpty())
-    {
-      smsMessageContent = line;
-      printWithTime("SMS content: " + smsMessageContent);
-    }
-    break;
-  default:
-    break;
-  }
-}
-
-void processIncomingCall(String notificationLine)
-{
-  printWithTime("*** Incoming Call Notification Received! ***");
-
-  // Extract and print the caller's number
-  int startIndex = notificationLine.indexOf("\"") + 1;
-  int endIndex = notificationLine.indexOf("\"", startIndex);
-  if (startIndex > 0 && endIndex > startIndex)
-  {
-    String callerNumber = notificationLine.substring(startIndex, endIndex);
-    printWithTime("Caller Number: " + callerNumber);
-  }
-  else
-  {
-    printWithTime("Failed to extract caller number.");
-  }
-
-  printWithTime("Type 'ATA' to answer or 'ATH' to hang up.");
-  printWithTime("--------------------------------------------------");
-}
-
-// Helper function to check if a line is mostly printable or has a known prefix
-bool isPrintableOrKnownPrefix(const String &line) {
-  // Allow if line starts with known SIM800L prefixes
-  if (line.startsWith("+CMTI:") || line.startsWith("+CMGR:") || line.startsWith("+CREG:") ||
-      line.startsWith("RING") || line.startsWith("NO CARRIER") || line.startsWith("Call Ready") ||
-      line.startsWith("+CSQ:") || line.startsWith("+CPIN:") || line.startsWith("+CSMINS:") ||
-      line.startsWith("OK") || line.startsWith(">") || line.startsWith("AT")) {
-    return true;
-  }
-  // Count printable ASCII chars
-  int printable = 0;
-  for (size_t i = 0; i < line.length(); ++i) {
-    char c = line[i];
-    if ((c >= 32 && c <= 126) || c == '\t') printable++;
-  }
-  // If more than 70% of the line is printable, allow it
-  return (line.length() > 0 && (printable * 100 / line.length()) > 70);
-}
-
-void loop()
-{
-  // Forward data from SIM800L to Serial Monitor, reading line by line
-  if (SIM800_SERIAL.available())
-  {
-    String line = SIM800_SERIAL.readStringUntil('\n');
-    line.trim(); // Remove potential leading/trailing whitespace/CR
-    if (line.length() > 0) {
-      if (isPrintableOrKnownPrefix(line)) {
-        printWithTime("tic: " + line); // Print the received line with time
-        // SMS state machine
-        if (smsState == SMS_WAIT_HEADER || smsState == SMS_WAIT_CONTENT)
-        {
-          handleSmsLine(line);
-        }
-
-        // Handle "NO CARRIER" message
-        if (line.equalsIgnoreCase("NO CARRIER"))
-        {
-          printWithTime("Call disconnected. Stopping DTMF transmission.");
-          return; // Exit early to stop further processing
-        }
-
-        // Check for "Call Ready" message
-        if (line.equalsIgnoreCase("Call Ready"))
-        {
-          unsigned long currentTime = millis();
-          if (lastCallReadyTime > 0)
-          {
-            unsigned long interval = currentTime - lastCallReadyTime;
-            printWithTime("Interval since last 'Call Ready': " + String(interval) + " ms");
-          }
-          lastCallReadyTime = currentTime;
-        }
-
-        // Check for new SMS notification
-        if (line.startsWith("+CMTI:"))
-        {
-          processSmsNotification(line); // Call the dedicated function
-        }
-
-        // Check for incoming call notification
-        if (line.startsWith("RING"))
-        {
-          processIncomingCall(line); // Call the dedicated function
-        }
-
-        // Handle network registration status
-        if (line.startsWith("+CREG:"))
-        {
-          int status = line.charAt(line.lastIndexOf(',') + 1) - '0';
-          if (status == 1 || status == 5)
-          {
-            printWithTime("SIM800L is registered on the network.");
-          }
-          else if (status == 2)
-          {
-            printWithTime("SIM800L is searching for a network...");
-          }
-          else
-          {
-            printWithTime("SIM800L is not registered on the network.");
-          }
-        }
-      } else {
-        printWithTime("RAW: " + line); // Mark and print garbage/unusual lines
+      // Forward to SIM900A
+      sim900.println(command);
+      
+      // Wait a bit for response
+      delay(100);
+      if (sim900.available()) {
+        String response = sim900.readString();
+        Serial.print("AT Response: ");
+        Serial.println(response);
       }
     }
   }
+  
+  // Periodic SMS memory cleanup (every 10 minutes)
+  if (millis() - lastSMSCheck > 600000) {
+    Serial.println("Periodic SMS memory cleanup...");
+    deleteAllSMS();
+    lastSMSCheck = millis();
+  }
+  
+  delay(50); // Shorter delay for more responsive buttons
+}
 
-  // Forward data from Serial Monitor to SIM800L
-  if (Serial.available())
-  {
-    String command = Serial.readStringUntil('\n');
-    command.trim();                // Remove potential leading/trailing whitespace/CR
-    sendCommandToSIM800L(command); // Forward command to SIM800L and print
-    if (command.equalsIgnoreCase("ATA"))
-    {
-      printWithTime("Answering the call...");
-      delay(1000); // Wait for the call to connect
+void checkButtons() {
+  static unsigned long lastDebugTime = 0;
+  
+  for (int i = 0; i < 8; i++) {
+    bool reading = digitalRead(buttonPins[i]);
+    
+    // No more debug output for GPIO4 - removed to reduce noise
+    
+    if (reading != lastButtonState[i]) {
+      lastDebounceTime[i] = millis();
+      Serial.print("Button ");
+      Serial.print(i + 1);
+      Serial.print(" state changed to ");
+      Serial.println(reading ? "HIGH" : "LOW");
+      lastButtonState[i] = reading;
     }
-    else if (command.equalsIgnoreCase("ATH"))
-    {
-      printWithTime("Hanging up the call...");
-    }
-    else
-    {
-      printWithTime(command); // Echo the command back to the Serial Monitor
+    
+    if ((millis() - lastDebounceTime[i]) > debounceDelay) {
+      if (reading == LOW && lastButtonState[i] == LOW) {
+        // Button is pressed and state is stable
+        Serial.print("Button ");
+        Serial.print(i + 1);
+        Serial.println(" PRESSED! Triggering call...");
+        handleButtonPress(i + 1);
+        
+        // Wait for button release to avoid multiple triggers
+        while (digitalRead(buttonPins[i]) == LOW) {
+          delay(10);
+        }
+        lastButtonState[i] = HIGH;
+        lastDebounceTime[i] = millis();
+      }
     }
   }
+}
 
-  // Check network registration periodically
-  static unsigned long lastNetworkCheck = 0;
-  static bool isRegistered = false; // Track registration status
-  if (millis() - lastNetworkCheck > 60e3)
-  { // Every 1 minute
-    if (!isRegistered)
-    {
-      sendCommandToSIM800L("AT+CREG?"); // Check network registration
-    }
-    lastNetworkCheck = millis();
+void handleButtonPress(int buttonNumber) {
+  Serial.print("Button ");
+  Serial.print(buttonNumber);
+  Serial.print(" pressed (GPIO");
+  Serial.print(buttonPins[buttonNumber - 1]);
+  Serial.println(")");
+  
+  String number = speedDialNumbers[buttonNumber - 1];
+  
+  if (number.length() > 0 && number != "") {
+    makeCall(number);
+  } else {
+    Serial.println("No number programmed for this button");
+    Serial.println("Send SMS: 'SET " + String(buttonNumber) + " +1234567890'");
   }
+}
+
+void makeCall(String number) {
+  Serial.print("Calling: ");
+  Serial.println(number);
+  
+  sim900.print("ATD");
+  sim900.print(number);
+  sim900.println(";"); // Semicolon indicates voice call
+  
+  delay(1000);
+  
+  // Read response
+  if (sim900.available()) {
+    String response = sim900.readString();
+    Serial.print("Call response: ");
+    Serial.println(response);
+  }
+}
+
+void handleIncomingCall() {
+  Serial.println("*** INCOMING CALL DETECTED ***");
+  incomingCall = true;
+  
+  // Auto-answer after 3 rings (optional)
+  delay(3000);
+  sim900.println("ATA"); // Answer call
+  Serial.println("Call answered automatically");
+}
+
+void handleIncomingSMS(String response) {
+  Serial.println("*** SMS RECEIVED - PROCESSING ***");
+  Serial.print("Raw SMS data: ");
+  Serial.println(response);
+  
+  // Extract phone number and message content
+  int phoneStart = response.indexOf("+37");
+  if (phoneStart == -1) {
+    Serial.println("Could not find phone number");
+    // Clean up any SMS in memory
+    deleteAllSMS();
+    return;
+  }
+  
+  int phoneEnd = response.indexOf("\"", phoneStart);
+  if (phoneEnd == -1) {
+    Serial.println("Could not parse phone number");
+    // Clean up any SMS in memory
+    deleteAllSMS();
+    return;
+  }
+  
+  String senderNumber = response.substring(phoneStart, phoneEnd);
+  Serial.print("SMS from: ");
+  Serial.println(senderNumber);
+  
+  // Check if sender is authorized
+  bool authorized = false;
+  for (int i = 0; i < numAuthorizedNumbers; i++) {
+    if (senderNumber == authorizedNumbers[i]) {
+      authorized = true;
+      break;
+    }
+  }
+  
+  if (!authorized) {
+    Serial.println("*** UNAUTHORIZED SMS SENDER - IGNORED ***");
+    // Clean up any SMS in memory
+    deleteAllSMS();
+    return;
+  }
+  
+  Serial.println("Sender authorized - processing command");
+  
+  // Simple and robust message extraction
+  // Split by lines and find the message (not the +CMT header)
+  String lines[10]; // Support up to 10 lines
+  int lineCount = 0;
+  int startPos = 0;
+  
+  // Split response into lines
+  while (startPos < response.length() && lineCount < 10) {
+    int endPos = response.indexOf('\n', startPos);
+    if (endPos == -1) {
+      lines[lineCount] = response.substring(startPos);
+      lineCount++;
+      break;
+    } else {
+      lines[lineCount] = response.substring(startPos, endPos);
+      lineCount++;
+      startPos = endPos + 1;
+    }
+  }
+  
+  // Debug: show all lines
+  Serial.println("Lines found:");
+  for (int i = 0; i < lineCount; i++) {
+    Serial.print("Line ");
+    Serial.print(i);
+    Serial.print(": '");
+    Serial.print(lines[i]);
+    Serial.println("'");
+  }
+  
+  // Find the message line (not the +CMT header)
+  String message = "";
+  for (int i = 0; i < lineCount; i++) {
+    String line = lines[i];
+    line.trim();
+    
+    // Skip empty lines, header lines, and lines with only non-printable characters
+    if (line.length() > 0 && !line.startsWith("+CMT:")) {
+      // Check if the line contains mostly printable characters
+      int printableCount = 0;
+      for (int j = 0; j < line.length(); j++) {
+        char c = line.charAt(j);
+        if (c >= 32 && c <= 126) { // Printable ASCII range
+          printableCount++;
+        }
+      }
+      
+      // If more than 50% of characters are printable, consider it valid
+      if (printableCount > line.length() / 2) {
+        message = line;
+        Serial.print("Selected line ");
+        Serial.print(i);
+        Serial.println(" as message content");
+        break; // Take the first valid non-header line
+      }
+    }
+  }
+  
+  // Clean the message
+  message.trim();
+  
+  // Remove any non-printable characters at the end
+  while (message.length() > 0 && message.charAt(message.length() - 1) < 32) {
+    message = message.substring(0, message.length() - 1);
+  }
+  
+  Serial.print("SMS command: '");
+  Serial.print(message);
+  Serial.println("'");
+  
+  if (message.length() == 0) {
+    Serial.println("Empty message content!");
+    deleteAllSMS();
+    return;
+  }
+  
+  processSMSCommand(message, senderNumber);
+  
+  // Clean up SMS memory after processing
+  deleteAllSMS();
+}
+
+void processSMSCommand(String command, String sender) {
+  // Don't convert to uppercase for SMS command to preserve message text
+  String upperCommand = command;
+  upperCommand.toUpperCase();
+  
+  if (upperCommand.startsWith("SET")) {
+    // Format: "SET 1 +37256560978"
+    int spacePos = upperCommand.indexOf(' ', 4);
+    if (spacePos == -1) {
+      sendSMS(sender, "Invalid format. Use: SET 1 +1234567890");
+      return;
+    }
+    
+    int buttonNum = upperCommand.substring(4, spacePos).toInt();
+    String phoneNumber = upperCommand.substring(spacePos + 1);
+    phoneNumber.trim();
+    
+    if (buttonNum >= 1 && buttonNum <= 8) {
+      speedDialNumbers[buttonNum - 1] = phoneNumber;
+      saveSpeedDialNumbers();
+      
+      String reply = "Button " + String(buttonNum) + " set to " + phoneNumber;
+      sendSMS(sender, reply);
+      
+      Serial.println("*** " + reply + " ***");
+      printSpeedDialNumbers();
+    } else {
+      sendSMS(sender, "Invalid button number. Use 1-8");
+    }
+  } else if (upperCommand.startsWith("SMS")) {
+    // Format: SMS "Hello there!" +37255639121
+    Serial.println("Processing SMS relay command...");
+    
+    // Find the quoted message
+    int firstQuote = command.indexOf('"');
+    int lastQuote = command.lastIndexOf('"');
+    
+    if (firstQuote == -1 || lastQuote == -1 || firstQuote == lastQuote) {
+      sendSMS(sender, "Invalid SMS format. Use: SMS \"message text\" +37xxxxxxx");
+      return;
+    }
+    
+    String message = command.substring(firstQuote + 1, lastQuote);
+    String remainder = command.substring(lastQuote + 1);
+    remainder.trim();
+    
+    // Extract phone number (should start with +)
+    int plusPos = remainder.indexOf('+');
+    if (plusPos == -1) {
+      sendSMS(sender, "Invalid phone number. Must start with +");
+      return;
+    }
+    
+    String targetNumber = remainder.substring(plusPos);
+    targetNumber.trim();
+    
+    // Validate phone number format (basic check)
+    if (targetNumber.length() < 8) {
+      sendSMS(sender, "Phone number too short");
+      return;
+    }
+    
+    // Send the SMS
+    Serial.print("Relaying SMS to ");
+    Serial.print(targetNumber);
+    Serial.print(": ");
+    Serial.println(message);
+    
+    sendSMS(targetNumber, message);
+    
+    // Confirm to sender
+    String confirmation = "SMS sent to " + targetNumber + ": \"" + message + "\"";
+    sendSMS(sender, confirmation);
+    
+  } else if (upperCommand == "LIST") {
+    String reply = "Speed dial numbers:\n";
+    for (int i = 0; i < 8; i++) {
+      reply += String(i + 1) + ": " + speedDialNumbers[i] + "\n";
+    }
+    sendSMS(sender, reply);
+    Serial.println("Sent speed dial list to " + sender);
+  } else if (upperCommand == "STATUS") {
+    sendSMS(sender, "Phone Zero ESP32 online. 8 buttons ready.");
+    Serial.println("Sent status to " + sender);
+  } else {
+    // Only send help for unrecognized commands
+    Serial.println("Unrecognized command: " + command);
+    sendSMS(sender, "Commands: SET 1 +number, LIST, STATUS, SMS \"text\" +number");
+  }
+}
+
+void sendSMS(String number, String message) {
+  Serial.print("Sending SMS to ");
+  Serial.print(number);
+  Serial.print(": ");
+  Serial.println(message);
+  
+  sim900.println("AT+CMGF=1"); // Text mode
+  delay(1000);
+  
+  sim900.print("AT+CMGS=\"");
+  sim900.print(number);
+  sim900.println("\"");
+  delay(1000);
+  
+  sim900.print(message);
+  delay(1000);
+  
+  sim900.write(26); // Ctrl+Z to send
+  delay(3000); // Wait for SMS to send
+  
+  // Check for delivery confirmation
+  if (sim900.available()) {
+    String response = sim900.readString();
+    Serial.print("SMS Response: ");
+    Serial.println(response);
+    if (response.indexOf("OK") >= 0) {
+      Serial.println("SMS sent successfully");
+    } else {
+      Serial.println("SMS send failed");
+    }
+  }
+  
+  // Clean up any remaining SMS in memory
+  delay(1000);
+  deleteAllSMS();
+}
+
+void deleteAllSMS() {
+  Serial.println("Clearing SMS memory...");
+  sim900.println("AT+CMGDA=\"DEL ALL\"");
+  delay(2000);
+  
+  if (sim900.available()) {
+    String response = sim900.readString();
+    Serial.print("Delete response: ");
+    Serial.println(response);
+  }
+}
+
+void checkSMSMemory() {
+  Serial.println("Checking SMS memory status...");
+  sim900.println("AT+CPMS?");
+  delay(1000);
+  
+  if (sim900.available()) {
+    String response = sim900.readString();
+    Serial.print("SMS Memory: ");
+    Serial.println(response);
+  }
+}
+
+void initSIM900() {
+  Serial.println("Initializing SIM900A via Hardware UART2...");
+  Serial.println("Using GPIO16/17 (D16/D17) for communication");
+  
+  // Wait for SIM900A to be fully ready
+  delay(2000);
+  
+  // Clear any existing data
+  while (sim900.available()) {
+    sim900.read();
+  }
+  
+  // Test AT command communication
+  Serial.println("Testing AT commands...");
+  
+  for (int attempt = 1; attempt <= 3; attempt++) {
+    Serial.print("AT Command attempt ");
+    Serial.print(attempt);
+    Serial.println("...");
+    
+    sim900.println("AT");
+    delay(1000);
+    
+    String response = "";
+    unsigned long startTime = millis();
+    
+    // Read response for 2 seconds
+    while (millis() - startTime < 2000) {
+      if (sim900.available()) {
+        response += sim900.readString();
+        break;
+      }
+    }
+    
+    Serial.print("Response: ");
+    Serial.println(response);
+    
+    if (response.indexOf("OK") >= 0) {
+      Serial.println("*** SIM900A COMMUNICATION SUCCESS ***");
+      
+      // Set SMS text mode
+      Serial.println("Setting SMS text mode...");
+      sim900.println("AT+CMGF=1");
+      delay(1000);
+      
+      // Delete all SMS messages to start clean
+      Serial.println("Clearing SMS memory...");
+      sim900.println("AT+CMGDA=\"DEL ALL\"");
+      delay(2000);
+      
+      // Enable SMS notifications (forward directly, don't store)
+      Serial.println("Enabling SMS notifications...");
+      sim900.println("AT+CNMI=2,2,0,0,0");
+      delay(1000);
+      
+      // Check signal quality
+      Serial.println("Checking signal quality...");
+      sim900.println("AT+CSQ");
+      delay(2000);
+      if (sim900.available()) {
+        Serial.print("Signal: ");
+        Serial.println(sim900.readString());
+      }
+      
+      // Check network registration
+      Serial.println("Checking network registration...");
+      sim900.println("AT+CREG?");
+      delay(2000);
+      if (sim900.available()) {
+        Serial.print("Network: ");
+        Serial.println(sim900.readString());
+      }
+      
+      Serial.println("*** SIM900A INITIALIZATION COMPLETE ***");
+      return; // Success!
+    }
+    
+    if (attempt < 3) {
+      Serial.println("No response, retrying...");
+      delay(2000);
+    }
+  }
+  
+  Serial.println("*** SIM900A INITIALIZATION FAILED ***");
+  Serial.println("Check connections and power supply");
+}
+
+void loadSpeedDialNumbers() {
+  Serial.println("Loading speed dial numbers from flash...");
+  
+  for (int i = 0; i < 8; i++) {
+    String key = "speed" + String(i);
+    String number = preferences.getString(key.c_str(), "");
+    
+    if (number.length() > 0) {
+      speedDialNumbers[i] = number;
+      Serial.print("Loaded button ");
+      Serial.print(i + 1);
+      Serial.print(": ");
+      Serial.println(number);
+    }
+  }
+}
+
+void saveSpeedDialNumbers() {
+  Serial.println("Saving speed dial numbers to flash...");
+  
+  for (int i = 0; i < 8; i++) {
+    String key = "speed" + String(i);
+    preferences.putString(key.c_str(), speedDialNumbers[i]);
+  }
+  
+  Serial.println("Speed dial numbers saved");
+}
+
+void printSpeedDialNumbers() {
+  Serial.println("\n=== CURRENT SPEED DIAL NUMBERS ===");
+  for (int i = 0; i < 8; i++) {
+    Serial.print("Button ");
+    Serial.print(i + 1);
+    Serial.print(" (GPIO");
+    Serial.print(buttonPins[i]);
+    Serial.print("): ");
+    if (speedDialNumbers[i].length() > 0) {
+      Serial.println(speedDialNumbers[i]);
+    } else {
+      Serial.println("(not programmed)");
+    }
+  }
+  Serial.println("=====================================\n");
 }

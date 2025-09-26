@@ -1,5 +1,0 @@
-# Ignore private configuration files that contain sensitive information
-private_config.h
-
-# Don't ignore the template file
-!private_config.h.template
