@@ -144,7 +144,10 @@ Button 4: GPIO21 (D21) | Button 8: GPIO26 (D26)
 - **Power Management:** Long-term power consumption and battery backup
 - **Thermal Management:** Heat dissipation for continuous operation
 - **Reliability Testing:** Extended operation validation needed
-- **Automatic Power-Up:** Currently requires manual SIM900A power button press - needs automatic startup when power applied
+- **Automatic Power-Up:** ✅ **SOLVED** - Hardware mod (solder R13 located to the right of bottom red headers) + ESP32 D9 control pin enables automatic SIM900A startup
+  - **R13 Location:** Two tiny solder pads to the right of the bottom red header connector on SIM900A PCB
+  - **Connection:** SIM900A D9 pin → ESP32 GPIO27 (or any available digital pin)
+  - **Solution Reference:** <https://randomnerdtutorials.com/sim900-gsm-gprs-shield-arduino/>
 
 ## Technical Achievements
 

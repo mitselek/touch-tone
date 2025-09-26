@@ -17,6 +17,7 @@
  * - SIM900A RX -> ESP32 D17 (GPIO17, UART2 TX)
  * - SIM900A GND -> ESP32 GND (shared ground)
  * - SIM900A VCC -> External 5V/2A supply
+ * - SIM900A D9  -> ESP32 GPIO27 (D9, for auto power-up)
  * 
  * Button Pins (with internal pull-ups):
  * - Button 1: GPIO4  (avoid strapping pins when possible)
@@ -27,12 +28,18 @@
  * - Button 6: GPIO23
  * - Button 7: GPIO25
  * - Button 8: GPIO26
+ * 
+ * IMPORTANT: SIM900A Hardware Mod Required for Auto Power-Up:
+ * - Solder R13 connection on SIM900A board (bridge the two tiny pins)
+ * - Connect SIM900A D9 pin to ESP32 GPIO27
+ * - Reference: https://randomnerdtutorials.com/sim900-gsm-gprs-shield-arduino/
  */
 
 // SIM900A Hardware Serial (UART2)
 HardwareSerial sim900(2); // UART2
 #define SIM900_RX_PIN 16   // ESP32 D16 -> SIM900A TX
 #define SIM900_TX_PIN 17   // ESP32 D17 -> SIM900A RX
+#define SIM900_POWER_PIN 27 // ESP32 GPIO27 -> SIM900A D9 (auto power-up)
 
 // Button pins for ESP32 (avoiding strapping pins where possible)
 #define BUTTON_1 4
@@ -96,6 +103,17 @@ void setup() {
   Serial.println("=======================================");
   Serial.println("Using Hardware UART2 (D16/D17) for SIM900A");
   Serial.println("SIM900A powered independently with 5V/2A");
+  
+  // Set up SIM900A auto power-up pin
+  pinMode(SIM900_POWER_PIN, OUTPUT);
+  digitalWrite(SIM900_POWER_PIN, LOW); // Ensure it starts LOW
+  
+  // Automatically power on SIM900A (equivalent to pressing power button)
+  Serial.println("Auto-powering SIM900A...");
+  digitalWrite(SIM900_POWER_PIN, HIGH);
+  delay(1000);
+  digitalWrite(SIM900_POWER_PIN, LOW);
+  delay(2000); // Wait for SIM900A to start up
   
   // Initialize UART2 for SIM900A communication
   sim900.begin(9600, SERIAL_8N1, SIM900_RX_PIN, SIM900_TX_PIN);
